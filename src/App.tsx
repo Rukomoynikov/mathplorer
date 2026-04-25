@@ -149,7 +149,7 @@ function App() {
   function handleClearNotebook() {
     if (
       !confirmNotebookReplacement(
-        'Clear this notebook? This removes all blocks saved in this browser.',
+        'Clear this notebook? This removes all blocks saved on this device.',
       )
     ) {
       return
@@ -273,7 +273,7 @@ function App() {
               <p className="text-sm font-semibold text-slate-800">
                 {blocks.length} {blocks.length === 1 ? 'block' : 'blocks'}
               </p>
-              <p className="text-xs text-slate-500">Saved locally in this browser</p>
+              <p className="text-xs text-slate-500">Saved locally on this device</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
