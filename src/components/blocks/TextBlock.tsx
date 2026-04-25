@@ -1,3 +1,7 @@
+import ReactMarkdown from 'react-markdown'
+import rehypeKatex from 'rehype-katex'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import BlockEditorShell from './BlockEditorShell'
 
 type TextBlockProps = {
@@ -6,6 +10,8 @@ type TextBlockProps = {
 }
 
 export default function TextBlock({ content, onChange }: TextBlockProps) {
+  const hasContent = content.trim().length > 0
+
   return (
     <BlockEditorShell
       label="Notes"
@@ -15,9 +21,57 @@ export default function TextBlock({ content, onChange }: TextBlockProps) {
           <p className="text-xs font-semibold uppercase text-slate-400">
             Preview
           </p>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-            {content || 'Start typing to see your note preview.'}
-          </p>
+          {hasContent ? (
+            <div className="mt-3 text-sm leading-6 text-slate-700">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="mb-3 text-2xl font-semibold text-slate-950">
+                      {children}
+                    </h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="mb-2 mt-4 text-xl font-semibold text-slate-900">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="mb-2 mt-4 text-base font-semibold text-slate-900">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => <p className="mb-3">{children}</p>,
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-slate-950">
+                      {children}
+                    </strong>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="mb-3 list-disc space-y-1 pl-5">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="mb-3 list-decimal space-y-1 pl-5">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li>{children}</li>,
+                  code: ({ children }) => (
+                    <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.85em] text-slate-900">
+                      {children}
+                    </code>
+                  ),
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              Start typing to see your note preview.
+            </p>
+          )}
         </div>
       }
     >

@@ -5,6 +5,8 @@ import type { Block, BlockType } from '../types'
 type NotebookProps = {
   blocks: Block[]
   onAddBlock: (type: BlockType) => void
+  onCreateExplanationFromFormula: (id: string) => void
+  onCreateGraphFromFormula: (id: string) => void
   onDeleteBlock: (id: string) => void
   onDuplicateBlock: (id: string) => void
   onMoveBlock: (id: string, direction: 'up' | 'down') => void
@@ -14,6 +16,8 @@ type NotebookProps = {
 export default function Notebook({
   blocks,
   onAddBlock,
+  onCreateExplanationFromFormula,
+  onCreateGraphFromFormula,
   onDeleteBlock,
   onDuplicateBlock,
   onMoveBlock,
@@ -41,6 +45,8 @@ export default function Notebook({
               block={block}
               index={index}
               totalBlocks={blocks.length}
+              onCreateExplanationFromFormula={onCreateExplanationFromFormula}
+              onCreateGraphFromFormula={onCreateGraphFromFormula}
               onDeleteBlock={onDeleteBlock}
               onDuplicateBlock={onDuplicateBlock}
               onMoveBlock={onMoveBlock}

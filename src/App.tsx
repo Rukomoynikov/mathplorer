@@ -55,6 +55,40 @@ function loadNotebook(): Block[] {
   return []
 }
 
+function normalizeFormulaContent(content: string) {
+  const trimmed = content.trim()
+
+  if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
+    return trimmed.slice(2, -2).trim()
+  }
+
+  if (trimmed.startsWith('\\[') && trimmed.endsWith('\\]')) {
+    return trimmed.slice(2, -2).trim()
+  }
+
+  return trimmed
+}
+
+function formulaToGraphContent(content: string) {
+  const normalized = normalizeFormulaContent(content)
+
+  if (!normalized) {
+    return 'y = '
+  }
+
+  if (/^y\s*=/.test(normalized)) {
+    return normalized
+  }
+
+  const functionMatch = normalized.match(/^[a-z]\s*\(\s*x\s*\)\s*=\s*(.+)$/i)
+
+  if (functionMatch?.[1]) {
+    return `y = ${functionMatch[1].trim()}`
+  }
+
+  return `y = ${normalized}`
+}
+
 function App() {
   const [blocks, setBlocks] = useState<Block[]>(loadNotebook)
 
@@ -64,6 +98,28 @@ function App() {
 
   function handleAddBlock(type: BlockType) {
     setBlocks((currentBlocks) => [...currentBlocks, createBlock(type)])
+  }
+
+  function handleInsertBlockAfter(
+    sourceId: string,
+    type: BlockType,
+    content: string,
+  ) {
+    setBlocks((currentBlocks) => {
+      const sourceIndex = currentBlocks.findIndex((block) => block.id === sourceId)
+
+      if (sourceIndex === -1) {
+        return currentBlocks
+      }
+
+      const derivedBlock = createBlock(type, content)
+
+      return [
+        ...currentBlocks.slice(0, sourceIndex + 1),
+        derivedBlock,
+        ...currentBlocks.slice(sourceIndex + 1),
+      ]
+    })
   }
 
   function handleUpdateBlock(id: string, content: string) {
@@ -95,6 +151,27 @@ function App() {
         ...currentBlocks.slice(sourceIndex + 1),
       ]
     })
+  }
+
+  function handleCreateGraphFromFormula(id: string) {
+    const sourceBlock = blocks.find((block) => block.id === id)
+
+    if (!sourceBlock) {
+      return
+    }
+
+    handleInsertBlockAfter(id, 'graph', formulaToGraphContent(sourceBlock.content))
+  }
+
+  function handleCreateExplanationFromFormula(id: string) {
+    const sourceBlock = blocks.find((block) => block.id === id)
+
+    if (!sourceBlock) {
+      return
+    }
+
+    const normalized = normalizeFormulaContent(sourceBlock.content)
+    handleInsertBlockAfter(id, 'explanation', `Explain this formula: ${normalized}`)
   }
 
   function handleMoveBlock(id: string, direction: 'up' | 'down') {
@@ -164,6 +241,8 @@ function App() {
           onUpdateBlock={handleUpdateBlock}
           onDeleteBlock={handleDeleteBlock}
           onDuplicateBlock={handleDuplicateBlock}
+          onCreateExplanationFromFormula={handleCreateExplanationFromFormula}
+          onCreateGraphFromFormula={handleCreateGraphFromFormula}
           onMoveBlock={handleMoveBlock}
         />
       </div>

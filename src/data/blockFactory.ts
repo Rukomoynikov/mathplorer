@@ -1,7 +1,7 @@
 import type { Block, BlockType } from '../types'
 
 const DEFAULT_BLOCK_CONTENT: Record<BlockType, string> = {
-  text: 'Write a note about the idea you are studying.',
+  text: '## Notes\n\nWrite **key ideas** here, and use inline math like $x^2 + 1$.',
   formula: 'f(x) = x^2 - 4x + 3',
   graph: 'y = x^2 - 4x + 3',
   solver: '2x + 5 = 17',
