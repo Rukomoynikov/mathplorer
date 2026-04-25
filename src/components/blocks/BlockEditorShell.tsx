@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
+import type { NotebookViewMode } from '../../types'
 
 type BlockEditorShellProps = {
   children: ReactNode
   helperText: string
   label: string
+  mode: NotebookViewMode
   output: ReactNode
 }
 
@@ -11,8 +13,13 @@ export default function BlockEditorShell({
   children,
   helperText,
   label,
+  mode,
   output,
 }: BlockEditorShellProps) {
+  if (mode === 'preview') {
+    return <div>{output}</div>
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)]">
       <div className="flex flex-col gap-2">

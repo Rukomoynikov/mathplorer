@@ -3,9 +3,11 @@ import rehypeKatex from 'rehype-katex'
 import remarkMath from 'remark-math'
 import { Copy, Sparkles, Trash2, LineChart } from 'lucide-react'
 import BlockEditorShell from './BlockEditorShell'
+import type { NotebookViewMode } from '../../types'
 
 type FormulaBlockProps = {
   content: string
+  mode: NotebookViewMode
   onChange: (content: string) => void
   onDelete: () => void
   onDuplicate: () => void
@@ -33,6 +35,7 @@ function toDisplayMath(content: string) {
 
 export default function FormulaBlock({
   content,
+  mode,
   onChange,
   onDelete,
   onDuplicate,
@@ -45,12 +48,21 @@ export default function FormulaBlock({
     <BlockEditorShell
       label="Formula"
       helperText="Capture a formula you want to study, transform, or graph."
+      mode={mode}
       output={
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">
-            Formula preview
-          </p>
-          <div className="mt-3 rounded-md bg-slate-50 p-4 text-slate-900">
+          {mode === 'edit' && (
+            <p className="text-xs font-semibold uppercase text-slate-400">
+              Formula preview
+            </p>
+          )}
+          <div
+            className={
+              mode === 'preview'
+                ? 'overflow-x-auto text-center text-slate-950'
+                : 'mt-3 rounded-md bg-slate-50 p-4 text-slate-900'
+            }
+          >
             {displayMath ? (
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
@@ -58,48 +70,50 @@ export default function FormulaBlock({
               >
                 {displayMath}
               </ReactMarkdown>
-            ) : (
+            ) : mode === 'preview' ? null : (
               <p className="text-sm text-slate-500">
                 Enter a formula to preview it here.
               </p>
             )}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onGraph}
-              disabled={!content.trim()}
-              className="inline-flex items-center gap-2 rounded-md bg-cyan-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              <LineChart size={14} aria-hidden="true" />
-              Graph
-            </button>
-            <button
-              type="button"
-              onClick={onExplain}
-              disabled={!content.trim()}
-              className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              <Sparkles size={14} aria-hidden="true" />
-              Explain
-            </button>
-            <button
-              type="button"
-              onClick={onDuplicate}
-              className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white"
-            >
-              <Copy size={14} aria-hidden="true" />
-              Duplicate
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              className="inline-flex items-center gap-2 rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
-            >
-              <Trash2 size={14} aria-hidden="true" />
-              Delete
-            </button>
-          </div>
+          {mode === 'edit' && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onGraph}
+                disabled={!content.trim()}
+                className="inline-flex items-center gap-2 rounded-md bg-cyan-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                <LineChart size={14} aria-hidden="true" />
+                Graph
+              </button>
+              <button
+                type="button"
+                onClick={onExplain}
+                disabled={!content.trim()}
+                className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                <Sparkles size={14} aria-hidden="true" />
+                Explain
+              </button>
+              <button
+                type="button"
+                onClick={onDuplicate}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white"
+              >
+                <Copy size={14} aria-hidden="true" />
+                Duplicate
+              </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex items-center gap-2 rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       }
     >

@@ -4,11 +4,12 @@ import FormulaBlock from './blocks/FormulaBlock'
 import GraphBlock from './blocks/GraphBlock'
 import SolverBlock from './blocks/SolverBlock'
 import TextBlock from './blocks/TextBlock'
-import type { Block } from '../types'
+import type { Block, NotebookViewMode } from '../types'
 
 type BlockRendererProps = {
   block: Block
   index: number
+  mode: NotebookViewMode
   totalBlocks: number
   onCreateExplanationFromFormula: (id: string) => void
   onCreateGraphFromFormula: (id: string) => void
@@ -21,6 +22,7 @@ type BlockRendererProps = {
 export default function BlockRenderer({
   block,
   index,
+  mode,
   totalBlocks,
   onCreateExplanationFromFormula,
   onCreateGraphFromFormula,
@@ -31,7 +33,34 @@ export default function BlockRenderer({
 }: BlockRendererProps) {
   const commonProps = {
     content: block.content,
+    mode,
     onChange: (content: string) => onUpdateBlock(block.id, content),
+  }
+
+  if (mode === 'preview' && !block.content.trim()) {
+    return null
+  }
+
+  const blockContent = (
+    <>
+      {block.type === 'text' && <TextBlock {...commonProps} />}
+      {block.type === 'formula' && (
+        <FormulaBlock
+          {...commonProps}
+          onDelete={() => onDeleteBlock(block.id)}
+          onDuplicate={() => onDuplicateBlock(block.id)}
+          onExplain={() => onCreateExplanationFromFormula(block.id)}
+          onGraph={() => onCreateGraphFromFormula(block.id)}
+        />
+      )}
+      {block.type === 'graph' && <GraphBlock {...commonProps} />}
+      {block.type === 'solver' && <SolverBlock {...commonProps} />}
+      {block.type === 'explanation' && <ExplanationBlock {...commonProps} />}
+    </>
+  )
+
+  if (mode === 'preview') {
+    return <section>{blockContent}</section>
   }
 
   return (
@@ -41,6 +70,7 @@ export default function BlockRenderer({
         blockNumber={index + 1}
         canMoveDown={index < totalBlocks - 1}
         canMoveUp={index > 0}
+        mode={mode}
         onDelete={() => onDeleteBlock(block.id)}
         onDuplicate={() => onDuplicateBlock(block.id)}
         onMoveDown={() => onMoveBlock(block.id, 'down')}
@@ -48,19 +78,7 @@ export default function BlockRenderer({
       />
 
       <div className="p-4">
-        {block.type === 'text' && <TextBlock {...commonProps} />}
-        {block.type === 'formula' && (
-          <FormulaBlock
-            {...commonProps}
-            onDelete={() => onDeleteBlock(block.id)}
-            onDuplicate={() => onDuplicateBlock(block.id)}
-            onExplain={() => onCreateExplanationFromFormula(block.id)}
-            onGraph={() => onCreateGraphFromFormula(block.id)}
-          />
-        )}
-        {block.type === 'graph' && <GraphBlock {...commonProps} />}
-        {block.type === 'solver' && <SolverBlock {...commonProps} />}
-        {block.type === 'explanation' && <ExplanationBlock {...commonProps} />}
+        {blockContent}
       </div>
     </article>
   )

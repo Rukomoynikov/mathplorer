@@ -1,4 +1,5 @@
 export type BlockType = 'text' | 'formula' | 'graph' | 'solver' | 'explanation'
+export type NotebookViewMode = 'preview' | 'edit'
 
 export type Block = {
   id: string

@@ -1,4 +1,5 @@
 import BlockEditorShell from './BlockEditorShell'
+import type { NotebookViewMode } from '../../types'
 import {
   solveLinearEquation,
   UNSUPPORTED_LINEAR_EQUATION_MESSAGE,
@@ -7,11 +8,22 @@ import {
 
 type SolverBlockProps = {
   content: string
+  mode: NotebookViewMode
   onChange: (content: string) => void
 }
 
-function SolverOutput({ result }: { result: SolverResult }) {
+function SolverOutput({
+  mode,
+  result,
+}: {
+  mode: NotebookViewMode
+  result: SolverResult
+}) {
   if (result.kind === 'empty') {
+    if (mode === 'preview') {
+      return null
+    }
+
     return (
       <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-4">
         <p className="text-sm leading-6 text-slate-600">
@@ -23,7 +35,11 @@ function SolverOutput({ result }: { result: SolverResult }) {
 
   if (result.kind === 'unsupported') {
     return (
-      <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-4">
+      <div
+        className={`rounded-md border border-amber-200 bg-amber-50 p-4 ${
+          mode === 'edit' ? 'mt-3' : ''
+        }`}
+      >
         <p className="text-sm font-semibold text-amber-950">Unsupported equation</p>
         <p className="mt-1 text-sm leading-6 text-amber-900">
           {UNSUPPORTED_LINEAR_EQUATION_MESSAGE}
@@ -33,7 +49,11 @@ function SolverOutput({ result }: { result: SolverResult }) {
   }
 
   return (
-    <ol className="mt-3 space-y-3 text-sm text-slate-700">
+    <ol
+      className={`space-y-3 text-slate-700 ${
+        mode === 'edit' ? 'mt-3 text-sm' : 'text-base'
+      }`}
+    >
       {result.steps.map((step, index) => (
         <li
           key={`${step.equation}-${index}`}
@@ -54,19 +74,22 @@ function SolverOutput({ result }: { result: SolverResult }) {
   )
 }
 
-export default function SolverBlock({ content, onChange }: SolverBlockProps) {
+export default function SolverBlock({ content, mode, onChange }: SolverBlockProps) {
   const result = solveLinearEquation(content)
 
   return (
     <BlockEditorShell
       label="Equation"
       helperText="This MVP solver supports equations shaped like ax + b = c."
+      mode={mode}
       output={
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">
-            Solver steps
-          </p>
-          <SolverOutput result={result} />
+          {mode === 'edit' && (
+            <p className="text-xs font-semibold uppercase text-slate-400">
+              Solver steps
+            </p>
+          )}
+          <SolverOutput mode={mode} result={result} />
         </div>
       }
     >

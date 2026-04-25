@@ -3,26 +3,37 @@ import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import BlockEditorShell from './BlockEditorShell'
+import type { NotebookViewMode } from '../../types'
 
 type TextBlockProps = {
   content: string
+  mode: NotebookViewMode
   onChange: (content: string) => void
 }
 
-export default function TextBlock({ content, onChange }: TextBlockProps) {
+export default function TextBlock({ content, mode, onChange }: TextBlockProps) {
   const hasContent = content.trim().length > 0
 
   return (
     <BlockEditorShell
       label="Notes"
       helperText="Use this space for definitions, observations, and scratch work."
+      mode={mode}
       output={
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">
-            Preview
-          </p>
+          {mode === 'edit' && (
+            <p className="text-xs font-semibold uppercase text-slate-400">
+              Preview
+            </p>
+          )}
           {hasContent ? (
-            <div className="mt-3 text-sm leading-6 text-slate-700">
+            <div
+              className={
+                mode === 'preview'
+                  ? 'text-base leading-7 text-slate-700'
+                  : 'mt-3 text-sm leading-6 text-slate-700'
+              }
+            >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
@@ -67,7 +78,7 @@ export default function TextBlock({ content, onChange }: TextBlockProps) {
                 {content}
               </ReactMarkdown>
             </div>
-          ) : (
+          ) : mode === 'preview' ? null : (
             <p className="mt-3 text-sm leading-6 text-slate-500">
               Start typing to see your note preview.
             </p>

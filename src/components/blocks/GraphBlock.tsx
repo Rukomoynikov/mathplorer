@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import BlockEditorShell from './BlockEditorShell'
+import type { NotebookViewMode } from '../../types'
 import {
   createPlot,
   formatGraphTick,
@@ -13,15 +14,22 @@ import {
 
 type GraphBlockProps = {
   content: string
+  mode: NotebookViewMode
   onChange: (content: string) => void
 }
 
-function GraphMessage({ plot }: { plot: Extract<PlotResult, { kind: 'empty' | 'error' }> }) {
+function GraphMessage({
+  mode,
+  plot,
+}: {
+  mode: NotebookViewMode
+  plot: Extract<PlotResult, { kind: 'empty' | 'error' }>
+}) {
   const isError = plot.kind === 'error'
 
   return (
     <div
-      className={`mt-3 rounded-md border p-4 ${
+      className={`rounded-md border p-4 ${mode === 'edit' ? 'mt-3' : ''} ${
         isError ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'
       }`}
     >
@@ -48,9 +56,15 @@ function GraphMessage({ plot }: { plot: Extract<PlotResult, { kind: 'empty' | 'e
   )
 }
 
-function GraphPreview({ plot }: { plot: PlotResult }) {
+function GraphPreview({
+  mode,
+  plot,
+}: {
+  mode: NotebookViewMode
+  plot: PlotResult
+}) {
   if (plot.kind !== 'plot') {
-    return <GraphMessage plot={plot} />
+    return <GraphMessage mode={mode} plot={plot} />
   }
 
   const graphWidth = SVG_WIDTH - PADDING * 2
@@ -71,7 +85,11 @@ function GraphPreview({ plot }: { plot: PlotResult }) {
   )
 
   return (
-    <div className="mt-3 overflow-hidden rounded-md border border-slate-200 bg-white">
+    <figure
+      className={`overflow-hidden rounded-md border border-slate-200 bg-white ${
+        mode === 'edit' ? 'mt-3' : ''
+      }`}
+    >
       <svg
         viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         role="img"
@@ -163,23 +181,26 @@ function GraphPreview({ plot }: { plot: PlotResult }) {
           y = {plot.expression}
         </code>
       </div>
-    </div>
+    </figure>
   )
 }
 
-export default function GraphBlock({ content, onChange }: GraphBlockProps) {
+export default function GraphBlock({ content, mode, onChange }: GraphBlockProps) {
   const plot = useMemo(() => createPlot(content), [content])
 
   return (
     <BlockEditorShell
       label="Function"
       helperText="Graph functions of x from -10 to 10. Try sin(x), sqrt(x), abs(x), or x^2 - 4*x + 3."
+      mode={mode}
       output={
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">
-            Graph preview
-          </p>
-          <GraphPreview plot={plot} />
+          {mode === 'edit' && (
+            <p className="text-xs font-semibold uppercase text-slate-400">
+              Graph preview
+            </p>
+          )}
+          <GraphPreview mode={mode} plot={plot} />
         </div>
       }
     >

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import BlockEditorShell from './BlockEditorShell'
+import type { NotebookViewMode } from '../../types'
 import {
   generateLocalExplanation,
   type ExplanationResult,
@@ -7,20 +8,54 @@ import {
 
 type ExplanationBlockProps = {
   content: string
+  mode: NotebookViewMode
   onChange: (content: string) => void
 }
 
 function ExplanationOutput({
   explanation,
+  mode,
 }: {
   explanation: ExplanationResult | null
+  mode: NotebookViewMode
 }) {
   if (!explanation) {
+    if (mode === 'preview') {
+      return null
+    }
+
     return (
       <p className="mt-3 rounded-md bg-amber-50 px-3 py-3 text-sm leading-6 text-amber-950">
         Ask a question about slope, quadratics, derivatives, graphs, or solving.
         A focused local explanation will appear here.
       </p>
+    )
+  }
+
+  if (mode === 'preview') {
+    return (
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-slate-950">
+          {explanation.title}
+        </h2>
+        <div className="space-y-3">
+          {explanation.paragraphs.map((paragraph) => (
+            <p key={paragraph} className="text-base leading-7 text-slate-700">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+        {explanation.examples && explanation.examples.length > 0 && (
+          <div className="pt-1">
+            <p className="text-sm font-semibold text-slate-900">Examples</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-base leading-7 text-slate-700">
+              {explanation.examples.map((example) => (
+                <li key={example}>{example}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
     )
   }
 
@@ -62,10 +97,17 @@ function ExplanationOutput({
 
 export default function ExplanationBlock({
   content,
+  mode,
   onChange,
 }: ExplanationBlockProps) {
   const [explanation, setExplanation] = useState<ExplanationResult | null>(null)
   const canGenerate = content.trim().length > 0
+  const previewExplanation = useMemo(
+    () => (canGenerate ? generateLocalExplanation(content) : null),
+    [canGenerate, content],
+  )
+  const displayedExplanation =
+    mode === 'preview' ? previewExplanation : explanation
 
   function handleContentChange(nextContent: string) {
     onChange(nextContent)
@@ -85,12 +127,15 @@ export default function ExplanationBlock({
     <BlockEditorShell
       label="Question"
       helperText="Ask a question about the concept you are studying."
+      mode={mode}
       output={
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">
-            Explanation
-          </p>
-          <ExplanationOutput explanation={explanation} />
+          {mode === 'edit' && (
+            <p className="text-xs font-semibold uppercase text-slate-400">
+              Explanation
+            </p>
+          )}
+          <ExplanationOutput explanation={displayedExplanation} mode={mode} />
         </div>
       }
     >

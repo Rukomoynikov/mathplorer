@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Plus, Upload } from 'lucide-react'
+import { BookOpen, Eye, PencilLine, Plus, Upload } from 'lucide-react'
 import Notebook from './components/Notebook'
 import NotebookTitleControl from './components/NotebookTitleControl'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
@@ -26,6 +26,7 @@ import {
 import type {
   BlockType,
   Notebook as NotebookModel,
+  NotebookViewMode,
   NotebookWorkspace,
 } from './types'
 
@@ -38,6 +39,54 @@ type NoNotebookStateProps = {
   onCreateNotebook: () => void
   onCreateSampleNotebook: () => void
   onImportNotebook: () => void
+}
+
+type NotebookViewModeToggleProps = {
+  mode: NotebookViewMode
+  onModeChange: (mode: NotebookViewMode) => void
+}
+
+function NotebookViewModeToggle({
+  mode,
+  onModeChange,
+}: NotebookViewModeToggleProps) {
+  const options: Array<{
+    icon: typeof Eye
+    label: string
+    value: NotebookViewMode
+  }> = [
+    { icon: Eye, label: 'Preview', value: 'preview' },
+    { icon: PencilLine, label: 'Edit', value: 'edit' },
+  ]
+
+  return (
+    <div
+      aria-label="Notebook view mode"
+      className="inline-flex rounded-md border border-slate-200 bg-white p-1 shadow-sm"
+      role="group"
+    >
+      {options.map(({ icon: Icon, label, value }) => {
+        const isSelected = mode === value
+
+        return (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={isSelected}
+            onClick={() => onModeChange(value)}
+            className={`inline-flex items-center justify-center gap-2 rounded px-3 py-1.5 text-sm font-semibold transition ${
+              isSelected
+                ? 'bg-teal-700 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <Icon size={16} aria-hidden="true" />
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function loadWorkspace(): NotebookWorkspace {
@@ -125,6 +174,8 @@ function NoNotebookState({
 
 function App() {
   const [workspace, setWorkspace] = useState<NotebookWorkspace>(loadWorkspace)
+  const [notebookViewMode, setNotebookViewMode] =
+    useState<NotebookViewMode>('preview')
   const [notice, setNotice] = useState<AppNotice | null>(null)
   const notebookImportInputRef = useRef<HTMLInputElement>(null)
   const workspaceImportInputRef = useRef<HTMLInputElement>(null)
@@ -133,6 +184,10 @@ function App() {
     workspace.notebooks.find(
       (notebook) => notebook.id === workspace.currentNotebookId,
     ) ?? null
+
+  useEffect(() => {
+    setNotebookViewMode('preview')
+  }, [currentNotebook?.id])
 
   useEffect(() => {
     try {
@@ -582,19 +637,39 @@ function App() {
           {currentNotebook ? (
             <>
               <header className="border-b border-slate-200 pb-6">
-                <NotebookTitleControl
-                  title={currentNotebook.title}
-                  onRename={handleRenameNotebook}
-                />
-                <p className="mt-3 text-sm leading-6 text-slate-500">
-                  {currentNotebook.blocks.length}{' '}
-                  {currentNotebook.blocks.length === 1 ? 'block' : 'blocks'} ·
-                  Saved locally on this device · Updated{' '}
-                  {new Date(currentNotebook.updatedAt).toLocaleString([], {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
-                </p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    {notebookViewMode === 'edit' ? (
+                      <NotebookTitleControl
+                        title={currentNotebook.title}
+                        onRename={handleRenameNotebook}
+                      />
+                    ) : (
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-teal-700">
+                          Current notebook
+                        </p>
+                        <h1 className="mt-2 break-words text-3xl font-semibold text-slate-950 sm:text-4xl">
+                          {currentNotebook.title}
+                        </h1>
+                      </div>
+                    )}
+                    <p className="mt-3 text-sm leading-6 text-slate-500">
+                      {currentNotebook.blocks.length}{' '}
+                      {currentNotebook.blocks.length === 1 ? 'block' : 'blocks'} ·
+                      Saved locally on this device · Updated{' '}
+                      {new Date(currentNotebook.updatedAt).toLocaleString([], {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </p>
+                  </div>
+
+                  <NotebookViewModeToggle
+                    mode={notebookViewMode}
+                    onModeChange={setNotebookViewMode}
+                  />
+                </div>
               </header>
 
               {notice && (
@@ -613,6 +688,7 @@ function App() {
               <Notebook
                 key={currentNotebook.id}
                 blocks={currentNotebook.blocks}
+                mode={notebookViewMode}
                 onAddBlock={handleAddBlock}
                 onLoadSampleNotebook={handleLoadSampleIntoCurrentNotebook}
                 onUpdateBlock={handleUpdateBlock}

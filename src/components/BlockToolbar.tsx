@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-react'
-import { BLOCK_TYPE_LABELS, type Block } from '../types'
+import { BLOCK_TYPE_LABELS, type Block, type NotebookViewMode } from '../types'
 
 type BlockToolbarProps = {
   block: Block
   blockNumber: number
   canMoveDown: boolean
   canMoveUp: boolean
+  mode: NotebookViewMode
   onDelete: () => void
   onDuplicate: () => void
   onMoveDown: () => void
@@ -52,11 +53,14 @@ export default function BlockToolbar({
   blockNumber,
   canMoveDown,
   canMoveUp,
+  mode,
   onDelete,
   onDuplicate,
   onMoveDown,
   onMoveUp,
 }: BlockToolbarProps) {
+  const isEditing = mode === 'edit'
+
   return (
     <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
@@ -81,28 +85,30 @@ export default function BlockToolbar({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <ToolbarIconButton
-          label="Move block up"
-          onClick={onMoveUp}
-          disabled={!canMoveUp}
-        >
-          <ArrowUp size={15} aria-hidden="true" />
-        </ToolbarIconButton>
-        <ToolbarIconButton
-          label="Move block down"
-          onClick={onMoveDown}
-          disabled={!canMoveDown}
-        >
-          <ArrowDown size={15} aria-hidden="true" />
-        </ToolbarIconButton>
-        <ToolbarIconButton label="Duplicate block" onClick={onDuplicate}>
-          <Copy size={15} aria-hidden="true" />
-        </ToolbarIconButton>
-        <ToolbarIconButton label="Delete block" onClick={onDelete} tone="danger">
-          <Trash2 size={15} aria-hidden="true" />
-        </ToolbarIconButton>
-      </div>
+      {isEditing && (
+        <div className="flex flex-wrap gap-2">
+          <ToolbarIconButton
+            label="Move block up"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+          >
+            <ArrowUp size={15} aria-hidden="true" />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Move block down"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+          >
+            <ArrowDown size={15} aria-hidden="true" />
+          </ToolbarIconButton>
+          <ToolbarIconButton label="Duplicate block" onClick={onDuplicate}>
+            <Copy size={15} aria-hidden="true" />
+          </ToolbarIconButton>
+          <ToolbarIconButton label="Delete block" onClick={onDelete} tone="danger">
+            <Trash2 size={15} aria-hidden="true" />
+          </ToolbarIconButton>
+        </div>
+      )}
     </div>
   )
 }
