@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-react'
+import { BLOCK_META } from './blockMeta'
 import { BLOCK_TYPE_LABELS, type Block, type NotebookViewMode } from '../types'
 
 type BlockToolbarProps = {
@@ -31,8 +32,8 @@ function ToolbarIconButton({
 }: ToolbarIconButtonProps) {
   const toneClasses =
     tone === 'danger'
-      ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
-      : 'border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+      ? 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
 
   return (
     <button
@@ -41,7 +42,7 @@ function ToolbarIconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 disabled:hover:bg-transparent ${toneClasses}`}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent ${toneClasses}`}
     >
       {children}
     </button>
@@ -60,24 +61,29 @@ export default function BlockToolbar({
   onMoveUp,
 }: BlockToolbarProps) {
   const isEditing = mode === 'edit'
+  const meta = BLOCK_META[block.type]
+  const Icon = meta.icon
 
   return (
-    <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-b from-white to-slate-50/60 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
-        <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-white px-2 text-xs font-semibold text-teal-700 ring-1 ring-slate-200">
-          {blockNumber}
+        <span
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${meta.iconBg} ${meta.iconColor} ring-1 ${meta.ringColor}`}
+        >
+          <Icon size={15} aria-hidden="true" />
         </span>
-        <div>
+        <div className="leading-tight">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-slate-900">
               {BLOCK_TYPE_LABELS[block.type]}
             </p>
-            <span className="rounded bg-white px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
-              block
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              #{blockNumber}
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Updated {new Date(block.updatedAt).toLocaleTimeString([], {
+          <p className="text-[11px] text-slate-500">
+            Updated{' '}
+            {new Date(block.updatedAt).toLocaleTimeString([], {
               hour: 'numeric',
               minute: '2-digit',
             })}
@@ -86,26 +92,27 @@ export default function BlockToolbar({
       </div>
 
       {isEditing && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white/70 p-1 shadow-sm">
           <ToolbarIconButton
             label="Move block up"
             onClick={onMoveUp}
             disabled={!canMoveUp}
           >
-            <ArrowUp size={15} aria-hidden="true" />
+            <ArrowUp size={14} aria-hidden="true" />
           </ToolbarIconButton>
           <ToolbarIconButton
             label="Move block down"
             onClick={onMoveDown}
             disabled={!canMoveDown}
           >
-            <ArrowDown size={15} aria-hidden="true" />
+            <ArrowDown size={14} aria-hidden="true" />
           </ToolbarIconButton>
+          <span className="mx-0.5 h-4 w-px bg-slate-200" aria-hidden="true" />
           <ToolbarIconButton label="Duplicate block" onClick={onDuplicate}>
-            <Copy size={15} aria-hidden="true" />
+            <Copy size={14} aria-hidden="true" />
           </ToolbarIconButton>
           <ToolbarIconButton label="Delete block" onClick={onDelete} tone="danger">
-            <Trash2 size={15} aria-hidden="true" />
+            <Trash2 size={14} aria-hidden="true" />
           </ToolbarIconButton>
         </div>
       )}

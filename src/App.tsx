@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Eye, PencilLine, Plus, Upload } from 'lucide-react'
+import {
+  AlertCircle,
+  BookOpen,
+  CheckCircle2,
+  Eye,
+  PencilLine,
+  Plus,
+  Upload,
+  X,
+} from 'lucide-react'
 import Notebook from './components/Notebook'
 import NotebookTitleControl from './components/NotebookTitleControl'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
@@ -62,7 +71,7 @@ function NotebookViewModeToggle({
   return (
     <div
       aria-label="Notebook view mode"
-      className="inline-flex rounded-md border border-slate-200 bg-white p-1 shadow-sm"
+      className="inline-flex rounded-full border border-slate-200 bg-white/80 p-1 shadow-sm backdrop-blur"
       role="group"
     >
       {options.map(({ icon: Icon, label, value }) => {
@@ -74,17 +83,68 @@ function NotebookViewModeToggle({
             type="button"
             aria-pressed={isSelected}
             onClick={() => onModeChange(value)}
-            className={`inline-flex items-center justify-center gap-2 rounded px-3 py-1.5 text-sm font-semibold transition ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
               isSelected
-                ? 'bg-teal-700 text-white shadow-sm'
+                ? 'bg-gradient-to-br from-teal-600 to-cyan-700 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <Icon size={16} aria-hidden="true" />
+            <Icon size={15} aria-hidden="true" />
             {label}
           </button>
         )
       })}
+    </div>
+  )
+}
+
+type NoticeToastProps = {
+  notice: AppNotice
+  onDismiss: () => void
+}
+
+function NoticeToast({ notice, onDismiss }: NoticeToastProps) {
+  const isError = notice.tone === 'error'
+  const Icon = isError ? AlertCircle : CheckCircle2
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(onDismiss, isError ? 6000 : 3500)
+    return () => window.clearTimeout(timeoutId)
+  }, [notice, isError, onDismiss])
+
+  return (
+    <div
+      aria-live="polite"
+      role="status"
+      className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:bottom-8 sm:right-8 sm:left-auto sm:justify-end sm:px-0"
+    >
+      <div
+        className={`animate-fade-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-white/95 px-4 py-3 text-sm shadow-[0_8px_28px_-8px_rgba(15,23,42,0.25)] backdrop-blur ${
+          isError ? 'border-rose-200' : 'border-slate-200'
+        }`}
+      >
+        <span
+          className={`flex h-8 w-8 flex-none items-center justify-center rounded-full ${
+            isError ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-600'
+          }`}
+        >
+          <Icon size={16} aria-hidden="true" />
+        </span>
+        <div className="flex-1 pt-0.5">
+          <p className="font-semibold text-slate-900">
+            {isError ? 'Something went wrong' : 'Done'}
+          </p>
+          <p className="mt-0.5 leading-5 text-slate-600">{notice.message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss notice"
+          className="-mr-1 -mt-1 flex h-7 w-7 flex-none items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      </div>
     </div>
   )
 }
@@ -131,42 +191,48 @@ function NoNotebookState({
   onImportNotebook,
 }: NoNotebookStateProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-teal-50 text-2xl font-semibold text-teal-700">
-        ∑
-      </div>
-      <p className="mt-5 text-xl font-semibold text-slate-950">
-        Start a workspace notebook
-      </p>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
-        Create a blank notebook, start from the sample, or import a notebook JSON
-        file.
-      </p>
-      <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-        <button
-          type="button"
-          onClick={onCreateNotebook}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
-        >
-          <Plus size={16} aria-hidden="true" />
-          New notebook
-        </button>
-        <button
-          type="button"
-          onClick={onCreateSampleNotebook}
-          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          <BookOpen size={16} aria-hidden="true" />
-          Create sample notebook
-        </button>
-        <button
-          type="button"
-          onClick={onImportNotebook}
-          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          <Upload size={16} aria-hidden="true" />
-          Import notebook
-        </button>
+    <section className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 px-6 py-16 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-24px_rgba(15,23,42,0.18)] backdrop-blur">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-24 h-48 bg-gradient-to-b from-teal-100/60 via-cyan-50/40 to-transparent blur-2xl"
+      />
+      <div className="relative">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-700 text-2xl font-semibold text-white shadow-md ring-1 ring-teal-700/30">
+          ∑
+        </div>
+        <p className="mt-6 text-2xl font-semibold tracking-tight text-slate-950">
+          Start a workspace notebook
+        </p>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
+          Create a blank notebook, start from a sample, or import a notebook JSON
+          file. Everything is saved locally on this device.
+        </p>
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={onCreateNotebook}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-teal-600 to-cyan-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-teal-700 hover:to-cyan-800"
+          >
+            <Plus size={16} aria-hidden="true" />
+            New notebook
+          </button>
+          <button
+            type="button"
+            onClick={onCreateSampleNotebook}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            <BookOpen size={16} aria-hidden="true" />
+            Create sample
+          </button>
+          <button
+            type="button"
+            onClick={onImportNotebook}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            <Upload size={16} aria-hidden="true" />
+            Import notebook
+          </button>
+        </div>
       </div>
     </section>
   )
@@ -616,9 +682,14 @@ function App() {
     }
   }
 
+  const totalBlockCount = workspace.notebooks.reduce(
+    (count, notebook) => count + notebook.blocks.length,
+    0,
+  )
+
   return (
-    <main className="min-h-screen px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+    <main className="min-h-screen text-slate-900">
+      <div className="flex flex-col lg:flex-row">
         <WorkspaceSidebar
           notebooks={workspace.notebooks}
           currentNotebookId={workspace.currentNotebookId}
@@ -633,36 +704,48 @@ function App() {
           onImportWorkspace={handleImportWorkspaceClick}
         />
 
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className="mx-auto flex min-w-0 max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           {currentNotebook ? (
             <>
-              <header className="border-b border-slate-200 pb-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <header className="rounded-2xl border border-slate-200/70 bg-white/70 px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.16)] backdrop-blur sm:px-6 sm:py-6">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
-                    {notebookViewMode === 'edit' ? (
-                      <NotebookTitleControl
-                        title={currentNotebook.title}
-                        onRename={handleRenameNotebook}
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-teal-700">
+                      <span
+                        aria-hidden="true"
+                        className="h-1.5 w-1.5 rounded-full bg-teal-500"
                       />
-                    ) : (
-                      <div>
-                        <p className="text-xs font-semibold uppercase text-teal-700">
-                          Current notebook
-                        </p>
-                        <h1 className="mt-2 break-words text-3xl font-semibold text-slate-950 sm:text-4xl">
-                          {currentNotebook.title}
-                        </h1>
+                      Current notebook
+                    </div>
+                    {notebookViewMode === 'edit' ? (
+                      <div className="mt-2">
+                        <NotebookTitleControl
+                          title={currentNotebook.title}
+                          onRename={handleRenameNotebook}
+                        />
                       </div>
+                    ) : (
+                      <h1 className="mt-2 break-words text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                        {currentNotebook.title}
+                      </h1>
                     )}
-                    <p className="mt-3 text-sm leading-6 text-slate-500">
-                      {currentNotebook.blocks.length}{' '}
-                      {currentNotebook.blocks.length === 1 ? 'block' : 'blocks'} ·
-                      Saved locally on this device · Updated{' '}
-                      {new Date(currentNotebook.updatedAt).toLocaleString([], {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-600">
+                        {currentNotebook.blocks.length}{' '}
+                        {currentNotebook.blocks.length === 1 ? 'block' : 'blocks'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Saved locally
+                      </span>
+                      <span className="text-slate-400">
+                        Updated{' '}
+                        {new Date(currentNotebook.updatedAt).toLocaleString([], {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </span>
+                    </div>
                   </div>
 
                   <NotebookViewModeToggle
@@ -671,19 +754,6 @@ function App() {
                   />
                 </div>
               </header>
-
-              {notice && (
-                <p
-                  aria-live="polite"
-                  className={`rounded-md px-3 py-2 text-sm ${
-                    notice.tone === 'error'
-                      ? 'bg-rose-50 text-rose-700'
-                      : 'bg-teal-50 text-teal-800'
-                  }`}
-                >
-                  {notice.message}
-                </p>
-              )}
 
               <Notebook
                 key={currentNotebook.id}
@@ -698,27 +768,22 @@ function App() {
                 onCreateGraphFromFormula={handleCreateGraphFromFormula}
                 onMoveBlock={handleMoveBlock}
               />
-            </>
-          ) : (
-            <>
-              {notice && (
-                <p
-                  aria-live="polite"
-                  className={`rounded-md px-3 py-2 text-sm ${
-                    notice.tone === 'error'
-                      ? 'bg-rose-50 text-rose-700'
-                      : 'bg-teal-50 text-teal-800'
-                  }`}
-                >
-                  {notice.message}
+
+              {totalBlockCount > 0 && (
+                <p className="text-center text-xs text-slate-400">
+                  {totalBlockCount} total{' '}
+                  {totalBlockCount === 1 ? 'block' : 'blocks'} across{' '}
+                  {workspace.notebooks.length}{' '}
+                  {workspace.notebooks.length === 1 ? 'notebook' : 'notebooks'}
                 </p>
               )}
-              <NoNotebookState
-                onCreateNotebook={handleCreateNotebook}
-                onCreateSampleNotebook={handleCreateSampleNotebook}
-                onImportNotebook={handleImportNotebookClick}
-              />
             </>
+          ) : (
+            <NoNotebookState
+              onCreateNotebook={handleCreateNotebook}
+              onCreateSampleNotebook={handleCreateSampleNotebook}
+              onImportNotebook={handleImportNotebookClick}
+            />
           )}
         </div>
       </div>
@@ -743,6 +808,10 @@ function App() {
           event.target.value = ''
         }}
       />
+
+      {notice && (
+        <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />
+      )}
     </main>
   )
 }

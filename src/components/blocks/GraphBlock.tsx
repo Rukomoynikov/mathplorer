@@ -196,7 +196,7 @@ export default function GraphBlock({ content, mode, onChange }: GraphBlockProps)
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-xs font-semibold uppercase text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Graph preview
             </p>
           )}
@@ -209,7 +209,7 @@ export default function GraphBlock({ content, mode, onChange }: GraphBlockProps)
         onChange={(event) => onChange(event.target.value)}
         rows={4}
         placeholder="y = x^2 - 4*x + 3"
-        className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+        className="min-h-28 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-100"
       />
     </BlockEditorShell>
   )

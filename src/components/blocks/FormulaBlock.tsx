@@ -52,7 +52,7 @@ export default function FormulaBlock({
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-xs font-semibold uppercase text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Formula preview
             </p>
           )}
@@ -60,7 +60,7 @@ export default function FormulaBlock({
             className={
               mode === 'preview'
                 ? 'overflow-x-auto text-center text-slate-950'
-                : 'mt-3 rounded-md bg-slate-50 p-4 text-slate-900'
+                : 'mt-3 rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 text-slate-900'
             }
           >
             {displayMath ? (
@@ -82,7 +82,7 @@ export default function FormulaBlock({
                 type="button"
                 onClick={onGraph}
                 disabled={!content.trim()}
-                className="inline-flex items-center gap-2 rounded-md bg-cyan-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 <LineChart size={14} aria-hidden="true" />
                 Graph
@@ -91,15 +91,16 @@ export default function FormulaBlock({
                 type="button"
                 onClick={onExplain}
                 disabled={!content.trim()}
-                className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 <Sparkles size={14} aria-hidden="true" />
                 Explain
               </button>
+              <span className="mx-1 self-center h-5 w-px bg-slate-200" aria-hidden="true" />
               <button
                 type="button"
                 onClick={onDuplicate}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
               >
                 <Copy size={14} aria-hidden="true" />
                 Duplicate
@@ -107,7 +108,7 @@ export default function FormulaBlock({
               <button
                 type="button"
                 onClick={onDelete}
-                className="inline-flex items-center gap-2 rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
               >
                 <Trash2 size={14} aria-hidden="true" />
                 Delete
@@ -122,7 +123,7 @@ export default function FormulaBlock({
         onChange={(event) => onChange(event.target.value)}
         rows={4}
         placeholder="f(x) = x^2 - 4x + 3"
-        className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+        className="min-h-28 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-100"
       />
     </BlockEditorShell>
   )

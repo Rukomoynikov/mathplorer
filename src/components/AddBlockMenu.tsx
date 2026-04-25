@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { Plus } from 'lucide-react'
+import { BLOCK_META } from './blockMeta'
 import {
   BLOCK_TYPE_DESCRIPTIONS,
   BLOCK_TYPE_LABELS,
@@ -13,41 +13,38 @@ type AddBlockMenuProps = {
 }
 
 export default function AddBlockMenu({ onAddBlock }: AddBlockMenuProps) {
-  const [selectedType, setSelectedType] = useState<BlockType>('text')
-
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-sm font-semibold text-slate-800">New block</p>
-        <p className="text-sm text-slate-500">
-          {BLOCK_TYPE_DESCRIPTIONS[selectedType]}
-        </p>
+    <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] backdrop-blur sm:p-5">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <Plus size={13} aria-hidden="true" className="text-teal-700" />
+        Add a block
       </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {BLOCK_TYPES.map((type) => {
+          const meta = BLOCK_META[type]
+          const Icon = meta.icon
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <label className="sr-only" htmlFor="block-type">
-          Block type
-        </label>
-        <select
-          id="block-type"
-          value={selectedType}
-          onChange={(event) => setSelectedType(event.target.value as BlockType)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
-        >
-          {BLOCK_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {BLOCK_TYPE_LABELS[type]}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => onAddBlock(selectedType)}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-200"
-        >
-          <Plus size={16} aria-hidden="true" />
-          Add block
-        </button>
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => onAddBlock(type)}
+              className="group relative flex flex-col items-start gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-3 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+            >
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-lg ${meta.iconBg} ${meta.iconColor} ring-1 ${meta.ringColor}`}
+              >
+                <Icon size={16} aria-hidden="true" />
+              </span>
+              <span className="text-sm font-semibold text-slate-900">
+                {BLOCK_TYPE_LABELS[type]}
+              </span>
+              <span className="text-[11px] leading-4 text-slate-500">
+                {BLOCK_TYPE_DESCRIPTIONS[type]}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

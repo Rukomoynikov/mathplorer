@@ -22,7 +22,7 @@ export default function TextBlock({ content, mode, onChange }: TextBlockProps) {
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-xs font-semibold uppercase text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Preview
             </p>
           )}
@@ -91,7 +91,7 @@ export default function TextBlock({ content, mode, onChange }: TextBlockProps) {
         onChange={(event) => onChange(event.target.value)}
         rows={6}
         placeholder="Write your notes here..."
-        className="min-h-36 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm leading-6 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+        className="min-h-36 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-6 text-slate-900 shadow-sm transition focus:border-teal-400 focus:outline-none focus:ring-4 focus:ring-teal-100"
       />
     </BlockEditorShell>
   )
