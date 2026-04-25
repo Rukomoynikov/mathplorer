@@ -57,10 +57,10 @@ function SolverOutput({
       {result.steps.map((step, index) => (
         <li
           key={`${step.equation}-${index}`}
-          className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+          className="rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-3"
         >
           <div className="flex gap-3">
-            <span className="flex h-6 min-w-6 items-center justify-center rounded bg-white text-xs font-semibold text-teal-700">
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-white text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
               {index + 1}
             </span>
             <div>
@@ -85,7 +85,7 @@ export default function SolverBlock({ content, mode, onChange }: SolverBlockProp
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-xs font-semibold uppercase text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Solver steps
             </p>
           )}
@@ -98,7 +98,7 @@ export default function SolverBlock({ content, mode, onChange }: SolverBlockProp
         onChange={(event) => onChange(event.target.value)}
         rows={4}
         placeholder="2x + 5 = 17"
-        className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+        className="min-h-28 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-amber-400 focus:outline-none focus:ring-4 focus:ring-amber-100"
       />
     </BlockEditorShell>
   )

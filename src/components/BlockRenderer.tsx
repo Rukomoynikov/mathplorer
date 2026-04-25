@@ -1,4 +1,5 @@
 import BlockToolbar from './BlockToolbar'
+import { BLOCK_META } from './blockMeta'
 import ExplanationBlock from './blocks/ExplanationBlock'
 import FormulaBlock from './blocks/FormulaBlock'
 import GraphBlock from './blocks/GraphBlock'
@@ -36,6 +37,7 @@ export default function BlockRenderer({
     mode,
     onChange: (content: string) => onUpdateBlock(block.id, content),
   }
+  const meta = BLOCK_META[block.type]
 
   if (mode === 'preview' && !block.content.trim()) {
     return null
@@ -64,7 +66,11 @@ export default function BlockRenderer({
   }
 
   return (
-    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <article className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] transition hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-16px_rgba(15,23,42,0.16)]">
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${meta.accentBar}`}
+      />
       <BlockToolbar
         block={block}
         blockNumber={index + 1}
@@ -77,9 +83,7 @@ export default function BlockRenderer({
         onMoveUp={() => onMoveBlock(block.id, 'up')}
       />
 
-      <div className="p-4">
-        {blockContent}
-      </div>
+      <div className="p-5">{blockContent}</div>
     </article>
   )
 }

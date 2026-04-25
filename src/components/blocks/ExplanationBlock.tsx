@@ -60,12 +60,12 @@ function ExplanationOutput({
   }
 
   return (
-    <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+    <div className="mt-3 rounded-lg border border-violet-100 bg-violet-50/50 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-xs font-semibold uppercase text-teal-700">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-700">
           Local MVP explanation
         </p>
-        <span className="rounded bg-white px-2 py-1 text-xs font-medium text-slate-500">
+        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-violet-700 ring-1 ring-violet-200">
           {explanation.topic}
         </span>
       </div>
@@ -131,7 +131,7 @@ export default function ExplanationBlock({
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-xs font-semibold uppercase text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Explanation
             </p>
           )}
@@ -144,13 +144,13 @@ export default function ExplanationBlock({
         onChange={(event) => handleContentChange(event.target.value)}
         rows={5}
         placeholder="Explain why changing a in y = ax^2 changes the parabola."
-        className="min-h-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm leading-6 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+        className="min-h-32 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-6 text-slate-900 shadow-sm transition focus:border-violet-400 focus:outline-none focus:ring-4 focus:ring-violet-100"
       />
       <button
         type="button"
         onClick={handleGenerateExplanation}
         disabled={!canGenerate}
-        className="self-start rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="self-start rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
       >
         Generate explanation
       </button>
