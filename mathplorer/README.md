@@ -1,7 +1,12 @@
-# Tauri + React + Typescript
+# Math Notebook Lab
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Local-first desktop math notebook built with Tauri, React, TypeScript, and Tailwind CSS.
 
-## Recommended IDE Setup
+## Development
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+```sh
+npm run dev
+npm run tauri dev
+```
+
+The frontend dev server runs on `http://localhost:1420/`, which is the URL Tauri v2 uses in development.

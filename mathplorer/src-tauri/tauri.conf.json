@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "mathplorer",
+  "productName": "Math Notebook Lab",
   "version": "0.1.0",
   "identifier": "com.maxr.mathplorer",
   "build": {
@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "mathplorer",
-        "width": 800,
-        "height": 600
+        "title": "Math Notebook Lab",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 760,
+        "minHeight": 560
       }
     ],
     "security": {
