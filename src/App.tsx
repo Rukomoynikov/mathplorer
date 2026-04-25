@@ -1,121 +1,173 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react'
+import Notebook from './components/Notebook'
+import { createBlock } from './data/blockFactory'
+import type { Block, BlockType } from './types'
 
-function App() {
-  const [count, setCount] = useState(0)
+const STORAGE_KEY = 'math-notebook-lab:v1'
+
+function isBlockType(value: unknown): value is BlockType {
+  return (
+    value === 'text' ||
+    value === 'formula' ||
+    value === 'graph' ||
+    value === 'solver' ||
+    value === 'explanation'
+  )
+}
+
+function isStoredBlock(value: unknown): value is Block {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const block = value as Record<string, unknown>
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    typeof block.id === 'string' &&
+    isBlockType(block.type) &&
+    typeof block.content === 'string' &&
+    typeof block.createdAt === 'number' &&
+    typeof block.updatedAt === 'number'
+  )
+}
 
-      <div className="ticks"></div>
+function loadNotebook(): Block[] {
+  if (typeof window === 'undefined') {
+    return []
+  }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  const storedValue = window.localStorage.getItem(STORAGE_KEY)
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+  if (!storedValue) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(storedValue)
+
+    if (Array.isArray(parsed) && parsed.every(isStoredBlock)) {
+      return parsed
+    }
+  } catch {
+    return []
+  }
+
+  return []
+}
+
+function App() {
+  const [blocks, setBlocks] = useState<Block[]>(loadNotebook)
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks))
+  }, [blocks])
+
+  function handleAddBlock(type: BlockType) {
+    setBlocks((currentBlocks) => [...currentBlocks, createBlock(type)])
+  }
+
+  function handleUpdateBlock(id: string, content: string) {
+    setBlocks((currentBlocks) =>
+      currentBlocks.map((block) =>
+        block.id === id ? { ...block, content, updatedAt: Date.now() } : block,
+      ),
+    )
+  }
+
+  function handleDeleteBlock(id: string) {
+    setBlocks((currentBlocks) => currentBlocks.filter((block) => block.id !== id))
+  }
+
+  function handleDuplicateBlock(id: string) {
+    setBlocks((currentBlocks) => {
+      const sourceIndex = currentBlocks.findIndex((block) => block.id === id)
+
+      if (sourceIndex === -1) {
+        return currentBlocks
+      }
+
+      const sourceBlock = currentBlocks[sourceIndex]
+      const duplicatedBlock = createBlock(sourceBlock.type, sourceBlock.content)
+
+      return [
+        ...currentBlocks.slice(0, sourceIndex + 1),
+        duplicatedBlock,
+        ...currentBlocks.slice(sourceIndex + 1),
+      ]
+    })
+  }
+
+  function handleMoveBlock(id: string, direction: 'up' | 'down') {
+    setBlocks((currentBlocks) => {
+      const sourceIndex = currentBlocks.findIndex((block) => block.id === id)
+      const targetIndex = direction === 'up' ? sourceIndex - 1 : sourceIndex + 1
+
+      if (
+        sourceIndex === -1 ||
+        targetIndex < 0 ||
+        targetIndex >= currentBlocks.length
+      ) {
+        return currentBlocks
+      }
+
+      const nextBlocks = [...currentBlocks]
+      const [movedBlock] = nextBlocks.splice(sourceIndex, 1)
+      nextBlocks.splice(targetIndex, 0, movedBlock)
+
+      return nextBlocks
+    })
+  }
+
+  function handleClearNotebook() {
+    setBlocks([])
+  }
+
+  return (
+    <main className="min-h-screen px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase text-teal-700">
+              Math Notebook Lab
+            </p>
+            <h1 className="mt-2 text-4xl font-semibold text-slate-950">
+              Interactive math notes, one block at a time.
+            </h1>
+            <p className="mt-3 text-base leading-7 text-slate-600">
+              Build a local notebook of notes, formulas, graphs, solvers, and
+              explanations while exploring a concept.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:min-w-64">
+            <p className="text-sm font-medium text-slate-700">
+              Saved locally in this browser
+            </p>
+            <p className="text-sm text-slate-500">
+              {blocks.length} {blocks.length === 1 ? 'block' : 'blocks'} in this
+              notebook.
+            </p>
+            <button
+              type="button"
+              onClick={handleClearNotebook}
+              disabled={blocks.length === 0}
+              className="rounded-md border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent"
+            >
+              Clear notebook
+            </button>
+          </div>
+        </header>
+
+        <Notebook
+          blocks={blocks}
+          onAddBlock={handleAddBlock}
+          onUpdateBlock={handleUpdateBlock}
+          onDeleteBlock={handleDeleteBlock}
+          onDuplicateBlock={handleDuplicateBlock}
+          onMoveBlock={handleMoveBlock}
+        />
+      </div>
+    </main>
   )
 }
 
