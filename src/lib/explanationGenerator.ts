@@ -16,6 +16,7 @@ function hasLinearEquationPattern(prompt: string) {
   return /x/.test(prompt) && /=/.test(prompt)
 }
 
+// Keep this pure and deterministic so an LLM-backed service can later swap in here.
 export function generateLocalExplanation(prompt: string): ExplanationResult {
   const normalizedPrompt = prompt.toLowerCase()
 

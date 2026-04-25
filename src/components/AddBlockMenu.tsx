@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import {
   BLOCK_TYPE_DESCRIPTIONS,
   BLOCK_TYPE_LABELS,
@@ -17,7 +18,7 @@ export default function AddBlockMenu({ onAddBlock }: AddBlockMenuProps) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-semibold text-slate-800">Add a block</p>
+        <p className="text-sm font-semibold text-slate-800">New block</p>
         <p className="text-sm text-slate-500">
           {BLOCK_TYPE_DESCRIPTIONS[selectedType]}
         </p>
@@ -42,8 +43,9 @@ export default function AddBlockMenu({ onAddBlock }: AddBlockMenuProps) {
         <button
           type="button"
           onClick={() => onAddBlock(selectedType)}
-          className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-200"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-200"
         >
+          <Plus size={16} aria-hidden="true" />
           Add block
         </button>
       </div>

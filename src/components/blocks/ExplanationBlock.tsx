@@ -77,6 +77,7 @@ export default function ExplanationBlock({
       return
     }
 
+    // Future LLM integration can replace this local generator call with an async API request.
     setExplanation(generateLocalExplanation(content))
   }
 

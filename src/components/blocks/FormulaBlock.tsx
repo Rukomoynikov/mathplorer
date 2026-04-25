@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import remarkMath from 'remark-math'
+import { Copy, Sparkles, Trash2, LineChart } from 'lucide-react'
 import BlockEditorShell from './BlockEditorShell'
 
 type FormulaBlockProps = {
@@ -68,30 +69,34 @@ export default function FormulaBlock({
               type="button"
               onClick={onGraph}
               disabled={!content.trim()}
-              className="rounded-md bg-cyan-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex items-center gap-2 rounded-md bg-cyan-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
+              <LineChart size={14} aria-hidden="true" />
               Graph
             </button>
             <button
               type="button"
               onClick={onExplain}
               disabled={!content.trim()}
-              className="rounded-md bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex items-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
+              <Sparkles size={14} aria-hidden="true" />
               Explain
             </button>
             <button
               type="button"
               onClick={onDuplicate}
-              className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white"
             >
+              <Copy size={14} aria-hidden="true" />
               Duplicate
             </button>
             <button
               type="button"
               onClick={onDelete}
-              className="rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+              className="inline-flex items-center gap-2 rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
             >
+              <Trash2 size={14} aria-hidden="true" />
               Delete
             </button>
           </div>
