@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Download, RotateCcw, Upload } from 'lucide-react'
+import { BookOpen, Plus, Upload } from 'lucide-react'
 import Notebook from './components/Notebook'
+import NotebookTitleControl from './components/NotebookTitleControl'
+import WorkspaceSidebar from './components/WorkspaceSidebar'
 import { createBlock } from './data/blockFactory'
 import { createSampleNotebook } from './data/sampleNotebook'
 import {
@@ -8,45 +10,297 @@ import {
   normalizeFormulaContent,
 } from './lib/formulaTransforms'
 import {
+  createNotebook,
   createNotebookExport,
-  loadBlocksFromStorage,
+  createWorkspaceExport,
+  createWorkspace,
+  duplicateNotebook,
+  loadWorkspaceFromStorage,
   NOTEBOOK_STORAGE_KEY,
   parseNotebookJson,
+  parseWorkspaceJson,
+  renameNotebook,
+  touchNotebook,
+  WORKSPACE_STORAGE_KEY,
 } from './lib/notebookSerialization'
-import type { Block, BlockType } from './types'
+import type {
+  BlockType,
+  Notebook as NotebookModel,
+  NotebookWorkspace,
+} from './types'
 
 type AppNotice = {
   message: string
   tone: 'error' | 'success'
 }
 
-function loadNotebook(): Block[] {
+type NoNotebookStateProps = {
+  onCreateNotebook: () => void
+  onCreateSampleNotebook: () => void
+  onImportNotebook: () => void
+}
+
+function loadWorkspace(): NotebookWorkspace {
   if (typeof window === 'undefined') {
-    return []
+    return createWorkspace([createNotebook()])
   }
 
-  return loadBlocksFromStorage(window.localStorage.getItem(NOTEBOOK_STORAGE_KEY))
+  return loadWorkspaceFromStorage(
+    window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
+    window.localStorage.getItem(NOTEBOOK_STORAGE_KEY),
+  )
+}
+
+function downloadJsonFile(filename: string, value: unknown) {
+  const json = JSON.stringify(value, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const downloadUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = downloadUrl
+  anchor.download = filename
+  anchor.style.display = 'none'
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(downloadUrl)
+}
+
+function toFileSlug(value: string) {
+  return (
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'notebook'
+  )
+}
+
+function NoNotebookState({
+  onCreateNotebook,
+  onCreateSampleNotebook,
+  onImportNotebook,
+}: NoNotebookStateProps) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-teal-50 text-2xl font-semibold text-teal-700">
+        ∑
+      </div>
+      <p className="mt-5 text-xl font-semibold text-slate-950">
+        Start a workspace notebook
+      </p>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
+        Create a blank notebook, start from the sample, or import a notebook JSON
+        file.
+      </p>
+      <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+        <button
+          type="button"
+          onClick={onCreateNotebook}
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+        >
+          <Plus size={16} aria-hidden="true" />
+          New notebook
+        </button>
+        <button
+          type="button"
+          onClick={onCreateSampleNotebook}
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          <BookOpen size={16} aria-hidden="true" />
+          Create sample notebook
+        </button>
+        <button
+          type="button"
+          onClick={onImportNotebook}
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          <Upload size={16} aria-hidden="true" />
+          Import notebook
+        </button>
+      </div>
+    </section>
+  )
 }
 
 function App() {
-  const [blocks, setBlocks] = useState<Block[]>(loadNotebook)
+  const [workspace, setWorkspace] = useState<NotebookWorkspace>(loadWorkspace)
   const [notice, setNotice] = useState<AppNotice | null>(null)
-  const importInputRef = useRef<HTMLInputElement>(null)
+  const notebookImportInputRef = useRef<HTMLInputElement>(null)
+  const workspaceImportInputRef = useRef<HTMLInputElement>(null)
+
+  const currentNotebook =
+    workspace.notebooks.find(
+      (notebook) => notebook.id === workspace.currentNotebookId,
+    ) ?? null
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(NOTEBOOK_STORAGE_KEY, JSON.stringify(blocks))
+      window.localStorage.setItem(
+        WORKSPACE_STORAGE_KEY,
+        JSON.stringify(workspace),
+      )
     } catch (error) {
-      console.error('Unable to save notebook to localStorage.', error)
+      console.error('Unable to save workspace to localStorage.', error)
     }
-  }, [blocks])
+  }, [workspace])
 
-  function confirmNotebookReplacement(message: string) {
-    return blocks.length === 0 || window.confirm(message)
+  function updateCurrentNotebook(
+    updater: (notebook: NotebookModel) => NotebookModel,
+  ) {
+    setWorkspace((currentWorkspace) => {
+      const currentNotebookId = currentWorkspace.currentNotebookId
+
+      if (!currentNotebookId) {
+        return currentWorkspace
+      }
+
+      const notebookIndex = currentWorkspace.notebooks.findIndex(
+        (notebook) => notebook.id === currentNotebookId,
+      )
+
+      if (notebookIndex === -1) {
+        return currentWorkspace
+      }
+
+      const notebooks = [...currentWorkspace.notebooks]
+      const updatedNotebook = updater(notebooks[notebookIndex])
+
+      if (updatedNotebook === notebooks[notebookIndex]) {
+        return currentWorkspace
+      }
+
+      notebooks[notebookIndex] = updatedNotebook
+
+      return {
+        ...currentWorkspace,
+        notebooks,
+      }
+    })
+  }
+
+  function handleSelectNotebook(id: string) {
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      currentNotebookId: id,
+    }))
+    setNotice(null)
+  }
+
+  function handleCreateNotebook() {
+    const notebook = createNotebook()
+
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      notebooks: [...currentWorkspace.notebooks, notebook],
+      currentNotebookId: notebook.id,
+    }))
+    setNotice({
+      tone: 'success',
+      message: 'Notebook created.',
+    })
+  }
+
+  function handleCreateSampleNotebook() {
+    const notebook = createNotebook('Quadratic exploration', createSampleNotebook())
+
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      notebooks: [...currentWorkspace.notebooks, notebook],
+      currentNotebookId: notebook.id,
+    }))
+    setNotice({
+      tone: 'success',
+      message: 'Sample notebook created.',
+    })
+  }
+
+  function handleRenameNotebook(title: string) {
+    updateCurrentNotebook((notebook) => renameNotebook(notebook, title))
+  }
+
+  function handleDeleteNotebook(id: string) {
+    const notebook = workspace.notebooks.find((candidate) => candidate.id === id)
+
+    if (!notebook) {
+      return
+    }
+
+    if (
+      !window.confirm(
+        `Delete "${notebook.title}"? This removes the notebook saved on this device.`,
+      )
+    ) {
+      return
+    }
+
+    setWorkspace((currentWorkspace) => {
+      const notebookIndex = currentWorkspace.notebooks.findIndex(
+        (candidate) => candidate.id === id,
+      )
+
+      if (notebookIndex === -1) {
+        return currentWorkspace
+      }
+
+      const notebooks = currentWorkspace.notebooks.filter(
+        (candidate) => candidate.id !== id,
+      )
+      const shouldChooseNext = currentWorkspace.currentNotebookId === id
+      const currentNotebookId = shouldChooseNext
+        ? (notebooks[notebookIndex]?.id ??
+          notebooks[notebookIndex - 1]?.id ??
+          notebooks[0]?.id ??
+          null)
+        : currentWorkspace.currentNotebookId
+
+      return {
+        ...currentWorkspace,
+        notebooks,
+        currentNotebookId,
+      }
+    })
+    setNotice({
+      tone: 'success',
+      message: 'Notebook deleted.',
+    })
+  }
+
+  function handleDuplicateNotebook(id: string) {
+    setWorkspace((currentWorkspace) => {
+      const notebookIndex = currentWorkspace.notebooks.findIndex(
+        (notebook) => notebook.id === id,
+      )
+
+      if (notebookIndex === -1) {
+        return currentWorkspace
+      }
+
+      const copiedNotebook = duplicateNotebook(
+        currentWorkspace.notebooks[notebookIndex],
+      )
+      const notebooks = [
+        ...currentWorkspace.notebooks.slice(0, notebookIndex + 1),
+        copiedNotebook,
+        ...currentWorkspace.notebooks.slice(notebookIndex + 1),
+      ]
+
+      return {
+        ...currentWorkspace,
+        notebooks,
+        currentNotebookId: copiedNotebook.id,
+      }
+    })
+    setNotice({
+      tone: 'success',
+      message: 'Notebook duplicated.',
+    })
   }
 
   function handleAddBlock(type: BlockType) {
-    setBlocks((currentBlocks) => [...currentBlocks, createBlock(type)])
+    updateCurrentNotebook((notebook) =>
+      touchNotebook(notebook, [...notebook.blocks, createBlock(type)]),
+    )
     setNotice(null)
   }
 
@@ -55,57 +309,68 @@ function App() {
     type: BlockType,
     content: string,
   ) {
-    setBlocks((currentBlocks) => {
-      const sourceIndex = currentBlocks.findIndex((block) => block.id === sourceId)
+    updateCurrentNotebook((notebook) => {
+      const sourceIndex = notebook.blocks.findIndex((block) => block.id === sourceId)
 
       if (sourceIndex === -1) {
-        return currentBlocks
+        return notebook
       }
 
       const derivedBlock = createBlock(type, content)
-
-      return [
-        ...currentBlocks.slice(0, sourceIndex + 1),
+      const blocks = [
+        ...notebook.blocks.slice(0, sourceIndex + 1),
         derivedBlock,
-        ...currentBlocks.slice(sourceIndex + 1),
+        ...notebook.blocks.slice(sourceIndex + 1),
       ]
+
+      return touchNotebook(notebook, blocks)
     })
   }
 
   function handleUpdateBlock(id: string, content: string) {
-    setBlocks((currentBlocks) =>
-      currentBlocks.map((block) =>
-        block.id === id ? { ...block, content, updatedAt: Date.now() } : block,
-      ),
-    )
+    updateCurrentNotebook((notebook) => {
+      const timestamp = Date.now()
+      const blocks = notebook.blocks.map((block) =>
+        block.id === id ? { ...block, content, updatedAt: timestamp } : block,
+      )
+
+      return touchNotebook(notebook, blocks)
+    })
   }
 
   function handleDeleteBlock(id: string) {
-    setBlocks((currentBlocks) => currentBlocks.filter((block) => block.id !== id))
+    updateCurrentNotebook((notebook) => {
+      const blocks = notebook.blocks.filter((block) => block.id !== id)
+
+      return blocks.length === notebook.blocks.length
+        ? notebook
+        : touchNotebook(notebook, blocks)
+    })
     setNotice(null)
   }
 
   function handleDuplicateBlock(id: string) {
-    setBlocks((currentBlocks) => {
-      const sourceIndex = currentBlocks.findIndex((block) => block.id === id)
+    updateCurrentNotebook((notebook) => {
+      const sourceIndex = notebook.blocks.findIndex((block) => block.id === id)
 
       if (sourceIndex === -1) {
-        return currentBlocks
+        return notebook
       }
 
-      const sourceBlock = currentBlocks[sourceIndex]
+      const sourceBlock = notebook.blocks[sourceIndex]
       const duplicatedBlock = createBlock(sourceBlock.type, sourceBlock.content)
-
-      return [
-        ...currentBlocks.slice(0, sourceIndex + 1),
+      const blocks = [
+        ...notebook.blocks.slice(0, sourceIndex + 1),
         duplicatedBlock,
-        ...currentBlocks.slice(sourceIndex + 1),
+        ...notebook.blocks.slice(sourceIndex + 1),
       ]
+
+      return touchNotebook(notebook, blocks)
     })
   }
 
   function handleCreateGraphFromFormula(id: string) {
-    const sourceBlock = blocks.find((block) => block.id === id)
+    const sourceBlock = currentNotebook?.blocks.find((block) => block.id === id)
 
     if (!sourceBlock) {
       return
@@ -115,7 +380,7 @@ function App() {
   }
 
   function handleCreateExplanationFromFormula(id: string) {
-    const sourceBlock = blocks.find((block) => block.id === id)
+    const sourceBlock = currentNotebook?.blocks.find((block) => block.id === id)
 
     if (!sourceBlock) {
       return
@@ -126,77 +391,66 @@ function App() {
   }
 
   function handleMoveBlock(id: string, direction: 'up' | 'down') {
-    setBlocks((currentBlocks) => {
-      const sourceIndex = currentBlocks.findIndex((block) => block.id === id)
+    updateCurrentNotebook((notebook) => {
+      const sourceIndex = notebook.blocks.findIndex((block) => block.id === id)
       const targetIndex = direction === 'up' ? sourceIndex - 1 : sourceIndex + 1
 
       if (
         sourceIndex === -1 ||
         targetIndex < 0 ||
-        targetIndex >= currentBlocks.length
+        targetIndex >= notebook.blocks.length
       ) {
-        return currentBlocks
+        return notebook
       }
 
-      const nextBlocks = [...currentBlocks]
-      const [movedBlock] = nextBlocks.splice(sourceIndex, 1)
-      nextBlocks.splice(targetIndex, 0, movedBlock)
+      const blocks = [...notebook.blocks]
+      const [movedBlock] = blocks.splice(sourceIndex, 1)
+      blocks.splice(targetIndex, 0, movedBlock)
 
-      return nextBlocks
+      return touchNotebook(notebook, blocks)
     })
   }
 
-  function handleClearNotebook() {
+  function handleLoadSampleIntoCurrentNotebook() {
+    if (!currentNotebook) {
+      handleCreateSampleNotebook()
+      return
+    }
+
     if (
-      !confirmNotebookReplacement(
-        'Clear this notebook? This removes all blocks saved on this device.',
+      currentNotebook.blocks.length > 0 &&
+      !window.confirm(
+        'Load the sample into this notebook? This will replace its current blocks.',
       )
     ) {
       return
     }
 
-    setBlocks([])
+    updateCurrentNotebook((notebook) =>
+      touchNotebook(notebook, createSampleNotebook()),
+    )
     setNotice({
       tone: 'success',
-      message: 'Notebook cleared.',
-    })
-  }
-
-  function handleLoadSampleNotebook() {
-    if (
-      !confirmNotebookReplacement(
-        'Load the sample notebook? This will replace the current notebook.',
-      )
-    ) {
-      return
-    }
-
-    setBlocks(createSampleNotebook())
-    setNotice({
-      tone: 'success',
-      message: 'Sample notebook loaded.',
+      message: 'Sample loaded into current notebook.',
     })
   }
 
   function handleExportNotebook() {
+    if (!currentNotebook) {
+      return
+    }
+
     try {
-      const json = JSON.stringify(createNotebookExport(blocks), null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const downloadUrl = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
       const dateStamp = new Date().toISOString().slice(0, 10)
+      const slug = toFileSlug(currentNotebook.title)
 
-      anchor.href = downloadUrl
-      anchor.download = `math-notebook-lab-${dateStamp}.json`
-      anchor.style.display = 'none'
-      document.body.append(anchor)
-      anchor.click()
-      anchor.remove()
-      URL.revokeObjectURL(downloadUrl)
-
+      downloadJsonFile(
+        `math-notebook-lab-${slug}-${dateStamp}.json`,
+        createNotebookExport(currentNotebook),
+      )
       setNotice({
         tone: 'success',
-        message: 'Notebook exported as JSON.',
+        message: 'Current notebook exported as JSON.',
       })
     } catch {
       setNotice({
@@ -206,8 +460,32 @@ function App() {
     }
   }
 
-  function handleImportClick() {
-    importInputRef.current?.click()
+  function handleExportWorkspace() {
+    try {
+      const dateStamp = new Date().toISOString().slice(0, 10)
+
+      downloadJsonFile(
+        `math-notebook-lab-workspace-${dateStamp}.json`,
+        createWorkspaceExport(workspace),
+      )
+      setNotice({
+        tone: 'success',
+        message: 'Workspace exported as JSON.',
+      })
+    } catch {
+      setNotice({
+        tone: 'error',
+        message: 'Workspace export failed. Try again after refreshing the app.',
+      })
+    }
+  }
+
+  function handleImportNotebookClick() {
+    notebookImportInputRef.current?.click()
+  }
+
+  function handleImportWorkspaceClick() {
+    workspaceImportInputRef.current?.click()
   }
 
   async function handleImportNotebook(file: File | undefined) {
@@ -226,22 +504,16 @@ function App() {
         return
       }
 
-      if (
-        !confirmNotebookReplacement(
-          'Import this notebook? This will replace the current notebook.',
-        )
-      ) {
-        return
-      }
+      const importedNotebook = parsedNotebook.notebook
 
-      const importedBlocks = parsedNotebook.blocks
-
-      setBlocks(importedBlocks)
+      setWorkspace((currentWorkspace) => ({
+        ...currentWorkspace,
+        notebooks: [...currentWorkspace.notebooks, importedNotebook],
+        currentNotebookId: importedNotebook.id,
+      }))
       setNotice({
         tone: 'success',
-        message: `Imported ${importedBlocks.length} ${
-          importedBlocks.length === 1 ? 'block' : 'blocks'
-        }.`,
+        message: `Imported "${importedNotebook.title}" as a new notebook.`,
       })
     } catch {
       setNotice({
@@ -251,106 +523,150 @@ function App() {
     }
   }
 
+  async function handleImportWorkspace(file: File | undefined) {
+    if (!file) {
+      return
+    }
+
+    try {
+      const parsedWorkspace = parseWorkspaceJson(await file.text())
+
+      if (!parsedWorkspace.ok) {
+        setNotice({
+          tone: 'error',
+          message: parsedWorkspace.message,
+        })
+        return
+      }
+
+      if (
+        !window.confirm(
+          'Import this workspace? This will replace all notebooks saved on this device.',
+        )
+      ) {
+        return
+      }
+
+      setWorkspace(parsedWorkspace.workspace)
+      setNotice({
+        tone: 'success',
+        message: 'Workspace imported.',
+      })
+    } catch {
+      setNotice({
+        tone: 'error',
+        message:
+          'Workspace import failed. Choose a workspace JSON file exported from Math Notebook Lab.',
+      })
+    }
+  }
+
   return (
     <main className="min-h-screen px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="flex flex-col gap-5 border-b border-slate-200 pb-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase text-teal-700">
-              Math Notebook Lab
-            </p>
-            <h1 className="mt-2 text-4xl font-semibold text-slate-950">
-              Interactive math notes, one block at a time.
-            </h1>
-            <p className="mt-3 text-base leading-7 text-slate-600">
-              Build a local notebook of notes, formulas, graphs, solvers, and
-              explanations while exploring a concept.
-            </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:w-80">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">
-                {blocks.length} {blocks.length === 1 ? 'block' : 'blocks'}
-              </p>
-              <p className="text-xs text-slate-500">Saved locally on this device</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={handleLoadSampleNotebook}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <BookOpen size={16} aria-hidden="true" />
-                Sample
-              </button>
-              <button
-                type="button"
-                onClick={handleExportNotebook}
-                disabled={blocks.length === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
-              >
-                <Download size={16} aria-hidden="true" />
-                Export
-              </button>
-              <button
-                type="button"
-                onClick={handleImportClick}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <Upload size={16} aria-hidden="true" />
-                Import
-              </button>
-              <button
-                type="button"
-                onClick={handleClearNotebook}
-                disabled={blocks.length === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 disabled:hover:bg-transparent"
-              >
-                <RotateCcw size={16} aria-hidden="true" />
-                Clear
-              </button>
-            </div>
-
-            <input
-              ref={importInputRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(event) => {
-                void handleImportNotebook(event.target.files?.[0])
-                event.target.value = ''
-              }}
-            />
-
-            {notice && (
-              <p
-                aria-live="polite"
-                className={`rounded-md px-3 py-2 text-sm ${
-                  notice.tone === 'error'
-                    ? 'bg-rose-50 text-rose-700'
-                    : 'bg-teal-50 text-teal-800'
-                }`}
-              >
-                {notice.message}
-              </p>
-            )}
-          </div>
-        </header>
-
-        <Notebook
-          blocks={blocks}
-          onAddBlock={handleAddBlock}
-          onLoadSampleNotebook={handleLoadSampleNotebook}
-          onUpdateBlock={handleUpdateBlock}
-          onDeleteBlock={handleDeleteBlock}
-          onDuplicateBlock={handleDuplicateBlock}
-          onCreateExplanationFromFormula={handleCreateExplanationFromFormula}
-          onCreateGraphFromFormula={handleCreateGraphFromFormula}
-          onMoveBlock={handleMoveBlock}
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <WorkspaceSidebar
+          notebooks={workspace.notebooks}
+          currentNotebookId={workspace.currentNotebookId}
+          onCreateNotebook={handleCreateNotebook}
+          onCreateSampleNotebook={handleCreateSampleNotebook}
+          onSelectNotebook={handleSelectNotebook}
+          onDuplicateNotebook={handleDuplicateNotebook}
+          onDeleteNotebook={handleDeleteNotebook}
+          onExportNotebook={handleExportNotebook}
+          onImportNotebook={handleImportNotebookClick}
+          onExportWorkspace={handleExportWorkspace}
+          onImportWorkspace={handleImportWorkspaceClick}
         />
+
+        <div className="flex min-w-0 flex-col gap-6">
+          {currentNotebook ? (
+            <>
+              <header className="border-b border-slate-200 pb-6">
+                <NotebookTitleControl
+                  title={currentNotebook.title}
+                  onRename={handleRenameNotebook}
+                />
+                <p className="mt-3 text-sm leading-6 text-slate-500">
+                  {currentNotebook.blocks.length}{' '}
+                  {currentNotebook.blocks.length === 1 ? 'block' : 'blocks'} ·
+                  Saved locally on this device · Updated{' '}
+                  {new Date(currentNotebook.updatedAt).toLocaleString([], {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </p>
+              </header>
+
+              {notice && (
+                <p
+                  aria-live="polite"
+                  className={`rounded-md px-3 py-2 text-sm ${
+                    notice.tone === 'error'
+                      ? 'bg-rose-50 text-rose-700'
+                      : 'bg-teal-50 text-teal-800'
+                  }`}
+                >
+                  {notice.message}
+                </p>
+              )}
+
+              <Notebook
+                key={currentNotebook.id}
+                blocks={currentNotebook.blocks}
+                onAddBlock={handleAddBlock}
+                onLoadSampleNotebook={handleLoadSampleIntoCurrentNotebook}
+                onUpdateBlock={handleUpdateBlock}
+                onDeleteBlock={handleDeleteBlock}
+                onDuplicateBlock={handleDuplicateBlock}
+                onCreateExplanationFromFormula={handleCreateExplanationFromFormula}
+                onCreateGraphFromFormula={handleCreateGraphFromFormula}
+                onMoveBlock={handleMoveBlock}
+              />
+            </>
+          ) : (
+            <>
+              {notice && (
+                <p
+                  aria-live="polite"
+                  className={`rounded-md px-3 py-2 text-sm ${
+                    notice.tone === 'error'
+                      ? 'bg-rose-50 text-rose-700'
+                      : 'bg-teal-50 text-teal-800'
+                  }`}
+                >
+                  {notice.message}
+                </p>
+              )}
+              <NoNotebookState
+                onCreateNotebook={handleCreateNotebook}
+                onCreateSampleNotebook={handleCreateSampleNotebook}
+                onImportNotebook={handleImportNotebookClick}
+              />
+            </>
+          )}
+        </div>
       </div>
+
+      <input
+        ref={notebookImportInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(event) => {
+          void handleImportNotebook(event.target.files?.[0])
+          event.target.value = ''
+        }}
+      />
+      <input
+        ref={workspaceImportInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(event) => {
+          void handleImportWorkspace(event.target.files?.[0])
+          event.target.value = ''
+        }}
+      />
     </main>
   )
 }

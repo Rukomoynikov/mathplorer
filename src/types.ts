@@ -8,6 +8,20 @@ export type Block = {
   updatedAt: number
 }
 
+export type Notebook = {
+  id: string
+  title: string
+  blocks: Block[]
+  createdAt: number
+  updatedAt: number
+}
+
+export type NotebookWorkspace = {
+  version: 2
+  notebooks: Notebook[]
+  currentNotebookId: string | null
+}
+
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   text: 'Text',
   formula: 'Formula',

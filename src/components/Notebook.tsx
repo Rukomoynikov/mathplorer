@@ -46,7 +46,7 @@ export default function Notebook({
               onClick={onLoadSampleNotebook}
               className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
             >
-              Load sample notebook
+              Load sample into current notebook
             </button>
             <button
               type="button"
