@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-react'
 import { BLOCK_TYPE_LABELS, type Block } from '../types'
 
@@ -13,7 +14,7 @@ type BlockToolbarProps = {
 }
 
 type ToolbarIconButtonProps = {
-  children: React.ReactNode
+  children: ReactNode
   disabled?: boolean
   label: string
   onClick: () => void

@@ -3,39 +3,21 @@ import { BookOpen, Download, RotateCcw, Upload } from 'lucide-react'
 import Notebook from './components/Notebook'
 import { createBlock } from './data/blockFactory'
 import { createSampleNotebook } from './data/sampleNotebook'
+import {
+  formulaToGraphContent,
+  normalizeFormulaContent,
+} from './lib/formulaTransforms'
+import {
+  createNotebookExport,
+  loadBlocksFromStorage,
+  NOTEBOOK_STORAGE_KEY,
+  parseNotebookJson,
+} from './lib/notebookSerialization'
 import type { Block, BlockType } from './types'
-
-const STORAGE_KEY = 'math-notebook-lab:v1'
 
 type AppNotice = {
   message: string
   tone: 'error' | 'success'
-}
-
-function isBlockType(value: unknown): value is BlockType {
-  return (
-    value === 'text' ||
-    value === 'formula' ||
-    value === 'graph' ||
-    value === 'solver' ||
-    value === 'explanation'
-  )
-}
-
-function isStoredBlock(value: unknown): value is Block {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const block = value as Record<string, unknown>
-
-  return (
-    typeof block.id === 'string' &&
-    isBlockType(block.type) &&
-    typeof block.content === 'string' &&
-    typeof block.createdAt === 'number' &&
-    typeof block.updatedAt === 'number'
-  )
 }
 
 function loadNotebook(): Block[] {
@@ -43,73 +25,7 @@ function loadNotebook(): Block[] {
     return []
   }
 
-  const storedValue = window.localStorage.getItem(STORAGE_KEY)
-
-  if (!storedValue) {
-    return []
-  }
-
-  try {
-    const parsed = JSON.parse(storedValue)
-
-    if (Array.isArray(parsed) && parsed.every(isStoredBlock)) {
-      return parsed
-    }
-  } catch {
-    return []
-  }
-
-  return []
-}
-
-function getImportBlocks(parsedNotebook: unknown): Block[] | null {
-  if (Array.isArray(parsedNotebook) && parsedNotebook.every(isStoredBlock)) {
-    return parsedNotebook
-  }
-
-  if (parsedNotebook && typeof parsedNotebook === 'object') {
-    const blocks = (parsedNotebook as Record<string, unknown>).blocks
-
-    if (Array.isArray(blocks) && blocks.every(isStoredBlock)) {
-      return blocks
-    }
-  }
-
-  return null
-}
-
-function normalizeFormulaContent(content: string) {
-  const trimmed = content.trim()
-
-  if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  if (trimmed.startsWith('\\[') && trimmed.endsWith('\\]')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  return trimmed
-}
-
-function formulaToGraphContent(content: string) {
-  const normalized = normalizeFormulaContent(content)
-
-  if (!normalized) {
-    return 'y = '
-  }
-
-  if (/^y\s*=/.test(normalized)) {
-    return normalized
-  }
-
-  const functionMatch = normalized.match(/^[a-z]\s*\(\s*x\s*\)\s*=\s*(.+)$/i)
-
-  if (functionMatch?.[1]) {
-    return `y = ${functionMatch[1].trim()}`
-  }
-
-  return `y = ${normalized}`
+  return loadBlocksFromStorage(window.localStorage.getItem(NOTEBOOK_STORAGE_KEY))
 }
 
 function App() {
@@ -118,8 +34,16 @@ function App() {
   const importInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks))
+    try {
+      window.localStorage.setItem(NOTEBOOK_STORAGE_KEY, JSON.stringify(blocks))
+    } catch (error) {
+      console.error('Unable to save notebook to localStorage.', error)
+    }
   }, [blocks])
+
+  function confirmNotebookReplacement(message: string) {
+    return blocks.length === 0 || window.confirm(message)
+  }
 
   function handleAddBlock(type: BlockType) {
     setBlocks((currentBlocks) => [...currentBlocks, createBlock(type)])
@@ -158,6 +82,7 @@ function App() {
 
   function handleDeleteBlock(id: string) {
     setBlocks((currentBlocks) => currentBlocks.filter((block) => block.id !== id))
+    setNotice(null)
   }
 
   function handleDuplicateBlock(id: string) {
@@ -222,6 +147,14 @@ function App() {
   }
 
   function handleClearNotebook() {
+    if (
+      !confirmNotebookReplacement(
+        'Clear this notebook? This removes all blocks saved in this browser.',
+      )
+    ) {
+      return
+    }
+
     setBlocks([])
     setNotice({
       tone: 'success',
@@ -230,6 +163,14 @@ function App() {
   }
 
   function handleLoadSampleNotebook() {
+    if (
+      !confirmNotebookReplacement(
+        'Load the sample notebook? This will replace the current notebook.',
+      )
+    ) {
+      return
+    }
+
     setBlocks(createSampleNotebook())
     setNotice({
       tone: 'success',
@@ -238,27 +179,31 @@ function App() {
   }
 
   function handleExportNotebook() {
-    const exportedNotebook = {
-      app: 'Math Notebook Lab',
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      blocks,
+    try {
+      const json = JSON.stringify(createNotebookExport(blocks), null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const downloadUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      const dateStamp = new Date().toISOString().slice(0, 10)
+
+      anchor.href = downloadUrl
+      anchor.download = `math-notebook-lab-${dateStamp}.json`
+      anchor.style.display = 'none'
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(downloadUrl)
+
+      setNotice({
+        tone: 'success',
+        message: 'Notebook exported as JSON.',
+      })
+    } catch {
+      setNotice({
+        tone: 'error',
+        message: 'Export failed. Try again after saving or refreshing the app.',
+      })
     }
-    const json = JSON.stringify(exportedNotebook, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const downloadUrl = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    const dateStamp = new Date().toISOString().slice(0, 10)
-
-    anchor.href = downloadUrl
-    anchor.download = `math-notebook-lab-${dateStamp}.json`
-    anchor.click()
-    URL.revokeObjectURL(downloadUrl)
-
-    setNotice({
-      tone: 'success',
-      message: 'Notebook exported as JSON.',
-    })
   }
 
   function handleImportClick() {
@@ -271,12 +216,25 @@ function App() {
     }
 
     try {
-      const parsedNotebook = JSON.parse(await file.text())
-      const importedBlocks = getImportBlocks(parsedNotebook)
+      const parsedNotebook = parseNotebookJson(await file.text())
 
-      if (!importedBlocks) {
-        throw new Error('Invalid notebook file.')
+      if (!parsedNotebook.ok) {
+        setNotice({
+          tone: 'error',
+          message: parsedNotebook.message,
+        })
+        return
       }
+
+      if (
+        !confirmNotebookReplacement(
+          'Import this notebook? This will replace the current notebook.',
+        )
+      ) {
+        return
+      }
+
+      const importedBlocks = parsedNotebook.blocks
 
       setBlocks(importedBlocks)
       setNotice({
@@ -288,8 +246,7 @@ function App() {
     } catch {
       setNotice({
         tone: 'error',
-        message:
-          'Import failed. Choose a JSON file exported from Math Notebook Lab.',
+        message: 'Import failed. Choose a JSON file exported from Math Notebook Lab.',
       })
     }
   }
@@ -369,6 +326,7 @@ function App() {
 
             {notice && (
               <p
+                aria-live="polite"
                 className={`rounded-md px-3 py-2 text-sm ${
                   notice.tone === 'error'
                     ? 'bg-rose-50 text-rose-700'

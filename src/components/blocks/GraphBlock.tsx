@@ -1,286 +1,56 @@
 import { useMemo } from 'react'
-import { compile } from 'mathjs'
 import BlockEditorShell from './BlockEditorShell'
+import {
+  createPlot,
+  formatGraphTick,
+  PADDING,
+  SVG_HEIGHT,
+  SVG_WIDTH,
+  X_MAX,
+  X_MIN,
+  type PlotResult,
+} from '../../lib/graphPlot'
 
 type GraphBlockProps = {
   content: string
   onChange: (content: string) => void
 }
 
-type PlotPoint = {
-  x: number
-  y: number
-}
+function GraphMessage({ plot }: { plot: Extract<PlotResult, { kind: 'empty' | 'error' }> }) {
+  const isError = plot.kind === 'error'
 
-type PlotResult =
-  | {
-      expression: string
-      segments: PlotPoint[][]
-      xTicks: number[]
-      yMax: number
-      yMin: number
-      yTicks: number[]
-    }
-  | {
-      error: string
-      expression?: string
-    }
-
-type ExtractExpressionResult =
-  | {
-      expression: string
-    }
-  | {
-      error: string
-    }
-
-type CompiledExpression = {
-  evaluate: (scope: { x: number }) => unknown
-}
-
-const X_MIN = -10
-const X_MAX = 10
-const SAMPLE_COUNT = 401
-const SVG_HEIGHT = 360
-const SVG_WIDTH = 640
-const PADDING = 42
-const MAX_ABSOLUTE_Y = 10_000
-
-function normalizeInput(rawInput: string) {
-  const trimmed = rawInput.trim()
-
-  if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  if (trimmed.startsWith('\\[') && trimmed.endsWith('\\]')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  return trimmed
-}
-
-function extractExpression(rawInput: string): ExtractExpressionResult {
-  const normalized = normalizeInput(rawInput)
-
-  if (!normalized) {
-    return {
-      error: 'Type a function like y = x^2 - 4*x + 3 to see its graph.',
-    }
-  }
-
-  const yMatch = normalized.match(/^y\s*=\s*(.+)$/i)
-
-  if (yMatch?.[1]) {
-    return { expression: yMatch[1].trim() }
-  }
-
-  const functionMatch = normalized.match(/^[a-z]\s*\(\s*x\s*\)\s*=\s*(.+)$/i)
-
-  if (functionMatch?.[1]) {
-    return { expression: functionMatch[1].trim() }
-  }
-
-  if (normalized.includes('=')) {
-    return {
-      error: 'Graph blocks support functions of x. Try y = x^2 - 4*x + 3.',
-    }
-  }
-
-  return { expression: normalized }
-}
-
-function percentile(sortedValues: number[], percent: number) {
-  const index = Math.round((sortedValues.length - 1) * percent)
-  return sortedValues[Math.min(sortedValues.length - 1, Math.max(0, index))]
-}
-
-function getYDomain(values: number[]) {
-  const sortedValues = [...values].sort((left, right) => left - right)
-  const fullMin = Math.min(0, sortedValues[0])
-  const fullMax = Math.max(0, sortedValues[sortedValues.length - 1])
-  const fullSpan = fullMax - fullMin
-  const lowPercentile = percentile(sortedValues, 0.02)
-  const highPercentile = percentile(sortedValues, 0.98)
-  const percentileSpan = highPercentile - lowPercentile
-
-  let yMin = fullMin
-  let yMax = fullMax
-
-  if (fullSpan > 1_000 && percentileSpan > 0 && percentileSpan < fullSpan / 2) {
-    yMin = Math.min(0, lowPercentile)
-    yMax = Math.max(0, highPercentile)
-  }
-
-  if (yMin === yMax) {
-    yMin -= 1
-    yMax += 1
-  }
-
-  const padding = (yMax - yMin) * 0.08
-
-  return {
-    yMax: yMax + padding,
-    yMin: yMin - padding,
-  }
-}
-
-function niceStep(span: number) {
-  const roughStep = span / 4
-  const magnitude = 10 ** Math.floor(Math.log10(roughStep))
-  const normalized = roughStep / magnitude
-
-  if (normalized >= 5) {
-    return 5 * magnitude
-  }
-
-  if (normalized >= 2) {
-    return 2 * magnitude
-  }
-
-  return magnitude
-}
-
-function buildYTicks(yMin: number, yMax: number) {
-  const step = niceStep(yMax - yMin)
-  const ticks: number[] = []
-  const firstTick = Math.ceil(yMin / step) * step
-
-  for (let tick = firstTick; tick <= yMax; tick += step) {
-    ticks.push(Number(tick.toFixed(8)))
-  }
-
-  return ticks.slice(0, 7)
-}
-
-function createPlot(rawInput: string): PlotResult {
-  const extracted = extractExpression(rawInput)
-
-  if ('error' in extracted) {
-    return extracted
-  }
-
-  const expression = extracted.expression
-
-  if (!expression) {
-    return {
-      error: 'Type a function like y = x^2 - 4*x + 3 to see its graph.',
-    }
-  }
-
-  let compiledExpression: CompiledExpression
-
-  try {
-    compiledExpression = compile(expression) as CompiledExpression
-  } catch {
-    return {
-      error: 'I could not parse that function. Try y = x^2 - 4*x + 3.',
-      expression,
-    }
-  }
-
-  const sampledPoints: Array<PlotPoint | null> = []
-
-  for (let index = 0; index < SAMPLE_COUNT; index += 1) {
-    const x = X_MIN + ((X_MAX - X_MIN) * index) / (SAMPLE_COUNT - 1)
-
-    try {
-      const value = compiledExpression.evaluate({ x })
-
-      if (
-        typeof value === 'number' &&
-        Number.isFinite(value) &&
-        Math.abs(value) <= MAX_ABSOLUTE_Y
-      ) {
-        sampledPoints.push({ x, y: value })
-      } else {
-        sampledPoints.push(null)
-      }
-    } catch {
-      sampledPoints.push(null)
-    }
-  }
-
-  const validPoints = sampledPoints.filter((point): point is PlotPoint =>
-    Boolean(point),
+  return (
+    <div
+      className={`mt-3 rounded-md border p-4 ${
+        isError ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'
+      }`}
+    >
+      <p
+        className={`text-sm font-semibold ${
+          isError ? 'text-amber-950' : 'text-slate-800'
+        }`}
+      >
+        {isError ? 'Cannot graph yet' : 'Ready for a function'}
+      </p>
+      <p
+        className={`mt-1 text-sm leading-6 ${
+          isError ? 'text-amber-900' : 'text-slate-600'
+        }`}
+      >
+        {isError ? plot.error : plot.message}
+      </p>
+      {isError && plot.expression && (
+        <code className="mt-3 inline-flex rounded bg-white px-2 py-1 font-mono text-xs text-amber-950">
+          {plot.expression}
+        </code>
+      )}
+    </div>
   )
-
-  if (validPoints.length < 2) {
-    return {
-      error:
-        'I could not find enough real y-values to plot. Check that the function uses x and supported functions like sin, cos, sqrt, abs, or log.',
-      expression,
-    }
-  }
-
-  const { yMin, yMax } = getYDomain(validPoints.map((point) => point.y))
-  const ySpan = yMax - yMin
-  const segments: PlotPoint[][] = []
-  let currentSegment: PlotPoint[] = []
-  let previousPoint: PlotPoint | null = null
-
-  for (const point of sampledPoints) {
-    const pointIsInView =
-      point && point.y >= yMin - ySpan * 0.05 && point.y <= yMax + ySpan * 0.05
-    const pointJumpsTooFar =
-      point && previousPoint && Math.abs(point.y - previousPoint.y) > ySpan * 0.65
-
-    if (!point || !pointIsInView || pointJumpsTooFar) {
-      if (currentSegment.length > 1) {
-        segments.push(currentSegment)
-      }
-
-      currentSegment = []
-      previousPoint = null
-      continue
-    }
-
-    currentSegment.push(point)
-    previousPoint = point
-  }
-
-  if (currentSegment.length > 1) {
-    segments.push(currentSegment)
-  }
-
-  if (segments.length === 0) {
-    return {
-      error: 'The function is valid, but its visible points are outside the graph window.',
-      expression,
-    }
-  }
-
-  return {
-    expression,
-    segments,
-    xTicks: [-10, -5, 0, 5, 10],
-    yMax,
-    yMin,
-    yTicks: buildYTicks(yMin, yMax),
-  }
-}
-
-function formatTick(value: number) {
-  if (Math.abs(value) >= 100 || Number.isInteger(value)) {
-    return String(Math.round(value))
-  }
-
-  return value.toFixed(1)
 }
 
 function GraphPreview({ plot }: { plot: PlotResult }) {
-  if ('error' in plot) {
-    return (
-      <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-4">
-        <p className="text-sm font-semibold text-amber-950">Cannot graph yet</p>
-        <p className="mt-1 text-sm leading-6 text-amber-900">{plot.error}</p>
-        {plot.expression && (
-          <code className="mt-3 inline-flex rounded bg-white px-2 py-1 font-mono text-xs text-amber-950">
-            {plot.expression}
-          </code>
-        )}
-      </div>
-    )
+  if (plot.kind !== 'plot') {
+    return <GraphMessage plot={plot} />
   }
 
   const graphWidth = SVG_WIDTH - PADDING * 2
@@ -349,7 +119,7 @@ function GraphPreview({ plot }: { plot: PlotResult }) {
               fontSize="12"
               textAnchor="end"
             >
-              {formatTick(tick)}
+              {formatGraphTick(tick)}
             </text>
           </g>
         ))}
@@ -403,7 +173,7 @@ export default function GraphBlock({ content, onChange }: GraphBlockProps) {
   return (
     <BlockEditorShell
       label="Function"
-      helperText="Graph blocks support functions of x over -10 <= x <= 10, including sin, cos, tan, sqrt, abs, and log."
+      helperText="Graph functions of x from -10 to 10. Try sin(x), sqrt(x), abs(x), or x^2 - 4*x + 3."
       output={
         <div>
           <p className="text-xs font-semibold uppercase text-slate-400">
@@ -417,7 +187,7 @@ export default function GraphBlock({ content, onChange }: GraphBlockProps) {
         value={content}
         onChange={(event) => onChange(event.target.value)}
         rows={4}
-        placeholder="y = x^2 - 4x + 3"
+        placeholder="y = x^2 - 4*x + 3"
         className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
       />
     </BlockEditorShell>
