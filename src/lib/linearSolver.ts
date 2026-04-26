@@ -1,3 +1,10 @@
+import {
+  evaluateExpression,
+  normalizeExpressionText,
+  parseExpression,
+  type ParsedExpression,
+} from './mathEngine'
+
 export type SolverStep = {
   equation: string
   explanation: string
@@ -18,90 +25,76 @@ export type SolverResult =
 type LinearEquation = {
   coefficient: number
   constant: number
-  rightSide: number
+  leftText: string
+  rightText: string
+}
+
+type LinearExpression = {
+  coefficient: number
+  constant: number
+  expression: ParsedExpression
 }
 
 export const UNSUPPORTED_LINEAR_EQUATION_MESSAGE =
   'This MVP solver currently supports simple linear equations like 2x + 5 = 17.'
 
-const NUMBER_PATTERN = '[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)'
+const LINEAR_TOLERANCE = 1e-9
 
 function normalizeEquation(input: string) {
-  return input.replace(/−/g, '-').replace(/\s+/g, '')
+  return normalizeExpressionText(input)
 }
 
-function parseNumber(value: string) {
-  if (!new RegExp(`^${NUMBER_PATTERN}$`).test(value)) {
+function isNearlyEqual(left: number, right: number) {
+  return Math.abs(left - right) <= LINEAR_TOLERANCE
+}
+
+function normalizeNumber(value: number) {
+  return Math.abs(value) < LINEAR_TOLERANCE ? 0 : value
+}
+
+function evaluateAt(expression: ParsedExpression, x: number) {
+  const result = evaluateExpression(expression, { x })
+
+  return result.ok ? result.value : null
+}
+
+function parseLinearExpression(input: string): LinearExpression | null {
+  const parsed = parseExpression(input)
+
+  if (!parsed.ok) {
     return null
   }
 
-  const parsedValue = Number(value)
+  const atZero = evaluateAt(parsed.value, 0)
+  const atOne = evaluateAt(parsed.value, 1)
+  const atTwo = evaluateAt(parsed.value, 2)
+  const atNegativeOne = evaluateAt(parsed.value, -1)
 
-  return Number.isFinite(parsedValue) ? parsedValue : null
-}
-
-function parseCoefficient(term: string) {
-  const withoutVariable = term.replace(/x/i, '').replace('*', '')
-
-  if (withoutVariable === '' || withoutVariable === '+') {
-    return 1
-  }
-
-  if (withoutVariable === '-') {
-    return -1
-  }
-
-  return parseNumber(withoutVariable)
-}
-
-function parseLeftSide(leftSide: string) {
-  if (!leftSide || !/[xX]/.test(leftSide)) {
+  if (
+    atNegativeOne === null ||
+    atZero === null ||
+    atOne === null ||
+    atTwo === null
+  ) {
     return null
   }
 
-  const terms = leftSide
-    .replace(/-/g, '+-')
-    .split('+')
-    .filter(Boolean)
+  const constant = atZero
+  const coefficient = atOne - constant
+  const expectedAtTwo = constant + coefficient * 2
 
-  let coefficient = 0
-  let constant = 0
-
-  for (const term of terms) {
-    if (/x/i.test(term)) {
-      const linearTermPattern = new RegExp(
-        `^[+-]?(?:(?:\\d+(?:\\.\\d+)?|\\.\\d+)\\*?)?x$`,
-        'i',
-      )
-
-      if (!linearTermPattern.test(term)) {
-        return null
-      }
-
-      const parsedCoefficient = parseCoefficient(term)
-
-      if (parsedCoefficient === null) {
-        return null
-      }
-
-      coefficient += parsedCoefficient
-      continue
-    }
-
-    const parsedConstant = parseNumber(term)
-
-    if (parsedConstant === null) {
-      return null
-    }
-
-    constant += parsedConstant
-  }
-
-  if (coefficient === 0) {
+  if (
+    !isNearlyEqual(atNegativeOne, constant - coefficient) ||
+    !isNearlyEqual(atTwo, expectedAtTwo)
+  ) {
     return null
   }
 
-  return { coefficient, constant }
+  return {
+    coefficient: normalizeNumber(coefficient),
+    constant: normalizeNumber(constant),
+    expression: parsed.value,
+  }
 }
 
 function parseEquation(input: string): LinearEquation | null {
@@ -113,17 +106,25 @@ function parseEquation(input: string): LinearEquation | null {
   }
 
   const [leftSide, rightSide] = parts
-  const parsedLeftSide = parseLeftSide(leftSide)
-  const parsedRightSide = parseNumber(rightSide)
+  const parsedLeftSide = parseLinearExpression(leftSide)
+  const parsedRightSide = parseLinearExpression(rightSide)
 
-  if (!parsedLeftSide || parsedRightSide === null) {
+  if (!parsedLeftSide || !parsedRightSide) {
+    return null
+  }
+
+  const coefficient = parsedLeftSide.coefficient - parsedRightSide.coefficient
+  const constant = parsedLeftSide.constant - parsedRightSide.constant
+
+  if (normalizeNumber(coefficient) === 0) {
     return null
   }
 
   return {
-    coefficient: parsedLeftSide.coefficient,
-    constant: parsedLeftSide.constant,
-    rightSide: parsedRightSide,
+    coefficient: normalizeNumber(coefficient),
+    constant: normalizeNumber(constant),
+    leftText: parsedLeftSide.expression.text,
+    rightText: parsedRightSide.expression.text,
   }
 }
 
@@ -149,19 +150,6 @@ function formatCoefficientTerm(coefficient: number) {
   return `${formatNumber(coefficient)}x`
 }
 
-function formatLinearExpression(coefficient: number, constant: number) {
-  const coefficientTerm = formatCoefficientTerm(coefficient)
-
-  if (constant === 0) {
-    return coefficientTerm
-  }
-
-  const operator = constant > 0 ? '+' : '-'
-  const absoluteConstant = formatNumber(Math.abs(constant))
-
-  return `${coefficientTerm} ${operator} ${absoluteConstant}`
-}
-
 export function solveLinearEquation(input: string): SolverResult {
   if (!input.trim()) {
     return { kind: 'empty' }
@@ -173,35 +161,34 @@ export function solveLinearEquation(input: string): SolverResult {
     return { kind: 'unsupported' }
   }
 
-  const { coefficient, constant, rightSide } = equation
-  const isolatedRightSide = rightSide - constant
+  const { coefficient, constant, leftText, rightText } = equation
+  const isolatedRightSide = -constant
   const solution = isolatedRightSide / coefficient
   const solutionEquation = `x = ${formatNumber(solution)}`
   const steps: SolverStep[] = [
     {
-      equation: `${formatLinearExpression(coefficient, constant)} = ${formatNumber(rightSide)}`,
+      equation: `${leftText} = ${rightText}`,
       explanation: 'Start with the original equation.',
     },
   ]
 
-  if (constant !== 0) {
-    const action = constant > 0 ? 'Subtract' : 'Add'
-    const amount = formatNumber(Math.abs(constant))
-    const direction =
-      constant > 0 ? 'remove the constant term' : 'cancel the negative constant term'
+  const isolatedVariableEquation = `${formatCoefficientTerm(
+    coefficient,
+  )} = ${formatNumber(isolatedRightSide)}`
 
+  if (steps[steps.length - 1].equation !== isolatedVariableEquation) {
     steps.push({
-      equation: `${formatCoefficientTerm(coefficient)} = ${formatNumber(isolatedRightSide)}`,
-      explanation: `${action} ${amount} on both sides to ${direction}.`,
+      equation: isolatedVariableEquation,
+      explanation: 'Move x terms to one side and constants to the other.',
     })
   }
 
-  if (coefficient !== 1) {
+  if (!isNearlyEqual(coefficient, 1)) {
     steps.push({
       equation: solutionEquation,
       explanation: `Divide both sides by ${formatNumber(coefficient)} to solve for x.`,
     })
-  } else if (constant !== 0) {
+  } else if (!isNearlyEqual(constant, 0)) {
     steps.push({
       equation: solutionEquation,
       explanation: 'The x term is already isolated, so this is the solution.',

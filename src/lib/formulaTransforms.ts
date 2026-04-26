@@ -1,15 +1,13 @@
+import { normalizeExpressionText, parseExpression } from './mathEngine'
+
 export function normalizeFormulaContent(content: string) {
-  const trimmed = content.trim()
+  return normalizeExpressionText(content)
+}
 
-  if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
-    return trimmed.slice(2, -2).trim()
-  }
+function toPlainExpressionText(content: string) {
+  const parsed = parseExpression(content)
 
-  if (trimmed.startsWith('\\[') && trimmed.endsWith('\\]')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  return trimmed
+  return parsed.ok ? parsed.value.text : content.trim()
 }
 
 export function formulaToGraphContent(content: string) {
@@ -19,15 +17,17 @@ export function formulaToGraphContent(content: string) {
     return 'y = '
   }
 
-  if (/^y\s*=/.test(normalized)) {
-    return normalized
+  if (/^y\s*=/i.test(normalized)) {
+    const expression = normalized.replace(/^y\s*=/i, '').trim()
+
+    return `y = ${toPlainExpressionText(expression)}`
   }
 
   const functionMatch = normalized.match(/^[a-z]\s*\(\s*x\s*\)\s*=\s*(.+)$/i)
 
   if (functionMatch?.[1]) {
-    return `y = ${functionMatch[1].trim()}`
+    return `y = ${toPlainExpressionText(functionMatch[1])}`
   }
 
-  return `y = ${normalized}`
+  return `y = ${toPlainExpressionText(normalized)}`
 }

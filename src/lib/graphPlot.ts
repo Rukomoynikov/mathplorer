@@ -1,4 +1,9 @@
-import { compile } from 'mathjs'
+import {
+  evaluateExpression,
+  normalizeExpressionText,
+  parseExpression,
+  type NumericScope,
+} from './mathEngine'
 
 export type PlotPoint = {
   x: number
@@ -82,10 +87,6 @@ type ExtractFunctionResult =
       error: string
     }
 
-type CompiledExpression = {
-  evaluate: (scope?: Record<string, number>) => unknown
-}
-
 type ParsedSeries =
   | {
       color: string
@@ -159,17 +160,12 @@ const SERIES_COLORS = [
 ]
 
 function normalizeInput(rawInput: string) {
-  const trimmed = rawInput.trim()
+  const trimmedInput = rawInput.trim()
+  const normalizedInput = normalizeExpressionText(rawInput)
 
-  if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  if (trimmed.startsWith('\\[') && trimmed.endsWith('\\]')) {
-    return trimmed.slice(2, -2).trim()
-  }
-
-  return rawInput
+  return normalizedInput === trimmedInput
+    ? rawInput.replace(/−/g, '-')
+    : normalizedInput
 }
 
 function createWarning(line: number, content: string, message: string): PlotWarning {
@@ -181,22 +177,25 @@ function createWarning(line: number, content: string, message: string): PlotWarn
 }
 
 function compileNumeric(expression: string) {
-  const compiledExpression = compile(expression) as CompiledExpression
+  const parsed = parseExpression(expression)
 
-  return (scope: Record<string, number> = {}) => {
-    const value = compiledExpression.evaluate({
-      e: Math.E,
-      pi: Math.PI,
-      ...scope,
-    })
+  if (!parsed.ok) {
+    throw new Error(parsed.error.message)
+  }
 
-    return typeof value === 'number' && Number.isFinite(value) ? value : null
+  return {
+    evaluate: (scope: NumericScope = {}) => {
+      const result = evaluateExpression(parsed.value, scope)
+
+      return result.ok ? result.value : null
+    },
+    text: parsed.value.text,
   }
 }
 
 function evaluateNumericExpression(expression: string) {
   try {
-    return compileNumeric(expression)()
+    return compileNumeric(expression).evaluate()
   } catch {
     return null
   }
@@ -355,10 +354,17 @@ function parseParametricLine(
 
   let evaluateX: (scope: { t: number }) => number | null
   let evaluateY: (scope: { t: number }) => number | null
+  let xLabel: string
+  let yLabel: string
 
   try {
-    evaluateX = compileNumeric(xExpression)
-    evaluateY = compileNumeric(yExpression)
+    const compiledX = compileNumeric(xExpression)
+    const compiledY = compileNumeric(yExpression)
+
+    evaluateX = compiledX.evaluate
+    evaluateY = compiledY.evaluate
+    xLabel = compiledX.text
+    yLabel = compiledY.text
   } catch {
     return createWarning(line, rawLine, 'I could not parse that parametric curve.')
   }
@@ -377,7 +383,7 @@ function parseParametricLine(
     },
     id,
     kind: 'parametric',
-    label: `x = ${xExpression}, y = ${yExpression}`,
+    label: `x = ${xLabel}, y = ${yLabel}`,
     line,
     tMax,
     tMin,
@@ -469,15 +475,15 @@ function parseSeriesLines(rawInput: string) {
       }
 
       try {
-        const evaluate = compileNumeric(extracted.expression)
+        const compiled = compileNumeric(extracted.expression)
 
         series.push({
           color,
-          evaluate: (scope) => evaluate(scope),
-          expression: extracted.expression,
+          evaluate: (scope) => compiled.evaluate(scope),
+          expression: compiled.text,
           id,
           kind: 'function',
-          label: extracted.label,
+          label: extracted.label.replace(extracted.expression, compiled.text),
           line,
         })
       } catch {
