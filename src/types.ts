@@ -34,7 +34,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
 export const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
   text: 'Write notes and rough thinking.',
   formula: 'Capture a formula for later rendering.',
-  graph: 'Describe a function to plot soon.',
+  graph: 'Plot functions, point sets, and parametric curves.',
   solver: 'Enter an equation to solve in steps.',
   explanation: 'Ask for a concept explanation.',
 }
