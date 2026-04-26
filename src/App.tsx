@@ -21,12 +21,16 @@ import {
   normalizeFormulaContent,
 } from './lib/formulaTransforms'
 import {
-  differentiateFormula,
   expandFormula,
   simplifyFormula,
   substituteFormula,
-  type AlgebraFormulaResult,
 } from './lib/algebraTools'
+import {
+  createTangentLineFormula,
+  differentiateCalculusFormula,
+  evaluateDerivativeAtPointFormula,
+  integrateDefiniteFormula,
+} from './lib/calculusTools'
 import type { MathEngineResult } from './lib/mathEngine'
 import {
   chooseNotebookStorageFolder,
@@ -61,6 +65,10 @@ import type {
 type AppNotice = {
   message: string
   tone: 'error' | 'success'
+}
+
+type DerivedFormulaResult = {
+  content: string
 }
 
 type StorageState =
@@ -808,7 +816,7 @@ function App() {
 
   function handleCreateAlgebraFormula(
     id: string,
-    transform: (content: string) => MathEngineResult<AlgebraFormulaResult>,
+    transform: (content: string) => MathEngineResult<DerivedFormulaResult>,
     successMessage: string,
   ) {
     const sourceBlock = currentNotebook?.blocks.find((block) => block.id === id)
@@ -846,11 +854,49 @@ function App() {
     )
   }
 
-  function handleDifferentiateFormula(id: string) {
+  function handleDifferentiateFormula(id: string, variable: string) {
     handleCreateAlgebraFormula(
       id,
-      (content) => differentiateFormula(content, 'x'),
+      (content) => differentiateCalculusFormula(content, variable),
       'Derivative formula created.',
+    )
+  }
+
+  function handleEvaluateDerivativeFormula(
+    id: string,
+    variable: string,
+    point: string,
+  ) {
+    handleCreateAlgebraFormula(
+      id,
+      (content) => evaluateDerivativeAtPointFormula(content, variable, point),
+      'Derivative value created.',
+    )
+  }
+
+  function handleTangentLineFormula(
+    id: string,
+    variable: string,
+    point: string,
+  ) {
+    handleCreateAlgebraFormula(
+      id,
+      (content) => createTangentLineFormula(content, variable, point),
+      'Tangent line created.',
+    )
+  }
+
+  function handleIntegrateDefiniteFormula(
+    id: string,
+    variable: string,
+    lowerBound: string,
+    upperBound: string,
+  ) {
+    handleCreateAlgebraFormula(
+      id,
+      (content) =>
+        integrateDefiniteFormula(content, variable, lowerBound, upperBound),
+      'Definite integral created.',
     )
   }
 
@@ -1135,10 +1181,13 @@ function App() {
                 onCreateExplanationFromFormula={handleCreateExplanationFromFormula}
                 onCreateGraphFromFormula={handleCreateGraphFromFormula}
                 onDifferentiateFormula={handleDifferentiateFormula}
+                onEvaluateDerivativeFormula={handleEvaluateDerivativeFormula}
                 onExpandFormula={handleExpandFormula}
+                onIntegrateDefiniteFormula={handleIntegrateDefiniteFormula}
                 onMoveBlock={handleMoveBlock}
                 onSimplifyFormula={handleSimplifyFormula}
                 onSubstituteFormula={handleSubstituteFormula}
+                onTangentLineFormula={handleTangentLineFormula}
               />
 
               {totalBlockCount > 0 && (

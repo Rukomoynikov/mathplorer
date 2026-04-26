@@ -15,12 +15,20 @@ type BlockRendererProps = {
   onCreateExplanationFromFormula: (id: string) => void
   onCreateGraphFromFormula: (id: string) => void
   onDeleteBlock: (id: string) => void
-  onDifferentiateFormula: (id: string) => void
+  onDifferentiateFormula: (id: string, variable: string) => void
+  onEvaluateDerivativeFormula: (id: string, variable: string, point: string) => void
   onDuplicateBlock: (id: string) => void
   onExpandFormula: (id: string) => void
+  onIntegrateDefiniteFormula: (
+    id: string,
+    variable: string,
+    lowerBound: string,
+    upperBound: string,
+  ) => void
   onMoveBlock: (id: string, direction: 'up' | 'down') => void
   onSimplifyFormula: (id: string) => void
   onSubstituteFormula: (id: string, substitution: string) => void
+  onTangentLineFormula: (id: string, variable: string, point: string) => void
   onUpdateBlock: (id: string, content: string) => void
 }
 
@@ -33,11 +41,14 @@ export default function BlockRenderer({
   onCreateGraphFromFormula,
   onDeleteBlock,
   onDifferentiateFormula,
+  onEvaluateDerivativeFormula,
   onDuplicateBlock,
   onExpandFormula,
+  onIntegrateDefiniteFormula,
   onMoveBlock,
   onSimplifyFormula,
   onSubstituteFormula,
+  onTangentLineFormula,
   onUpdateBlock,
 }: BlockRendererProps) {
   const commonProps = {
@@ -58,14 +69,30 @@ export default function BlockRenderer({
         <FormulaBlock
           {...commonProps}
           onDelete={() => onDeleteBlock(block.id)}
-          onDifferentiate={() => onDifferentiateFormula(block.id)}
+          onDifferentiate={(variable) =>
+            onDifferentiateFormula(block.id, variable)
+          }
+          onEvaluateDerivative={(variable, point) =>
+            onEvaluateDerivativeFormula(block.id, variable, point)
+          }
           onDuplicate={() => onDuplicateBlock(block.id)}
           onExplain={() => onCreateExplanationFromFormula(block.id)}
           onExpand={() => onExpandFormula(block.id)}
           onGraph={() => onCreateGraphFromFormula(block.id)}
+          onIntegrateDefinite={(variable, lowerBound, upperBound) =>
+            onIntegrateDefiniteFormula(
+              block.id,
+              variable,
+              lowerBound,
+              upperBound,
+            )
+          }
           onSimplify={() => onSimplifyFormula(block.id)}
           onSubstitute={(substitution) =>
             onSubstituteFormula(block.id, substitution)
+          }
+          onTangentLine={(variable, point) =>
+            onTangentLineFormula(block.id, variable, point)
           }
         />
       )}

@@ -10,13 +10,21 @@ type NotebookProps = {
   onCreateExplanationFromFormula: (id: string) => void
   onCreateGraphFromFormula: (id: string) => void
   onDeleteBlock: (id: string) => void
-  onDifferentiateFormula: (id: string) => void
+  onDifferentiateFormula: (id: string, variable: string) => void
+  onEvaluateDerivativeFormula: (id: string, variable: string, point: string) => void
   onDuplicateBlock: (id: string) => void
   onExpandFormula: (id: string) => void
+  onIntegrateDefiniteFormula: (
+    id: string,
+    variable: string,
+    lowerBound: string,
+    upperBound: string,
+  ) => void
   onLoadSampleNotebook: () => void
   onMoveBlock: (id: string, direction: 'up' | 'down') => void
   onSimplifyFormula: (id: string) => void
   onSubstituteFormula: (id: string, substitution: string) => void
+  onTangentLineFormula: (id: string, variable: string, point: string) => void
   onUpdateBlock: (id: string, content: string) => void
 }
 
@@ -28,12 +36,15 @@ export default function Notebook({
   onCreateGraphFromFormula,
   onDeleteBlock,
   onDifferentiateFormula,
+  onEvaluateDerivativeFormula,
   onDuplicateBlock,
   onExpandFormula,
+  onIntegrateDefiniteFormula,
   onLoadSampleNotebook,
   onMoveBlock,
   onSimplifyFormula,
   onSubstituteFormula,
+  onTangentLineFormula,
   onUpdateBlock,
 }: NotebookProps) {
   const isEditing = mode === 'edit'
@@ -106,11 +117,14 @@ export default function Notebook({
                 onCreateGraphFromFormula={onCreateGraphFromFormula}
                 onDeleteBlock={onDeleteBlock}
                 onDifferentiateFormula={onDifferentiateFormula}
+                onEvaluateDerivativeFormula={onEvaluateDerivativeFormula}
                 onDuplicateBlock={onDuplicateBlock}
                 onExpandFormula={onExpandFormula}
+                onIntegrateDefiniteFormula={onIntegrateDefiniteFormula}
                 onMoveBlock={onMoveBlock}
                 onSimplifyFormula={onSimplifyFormula}
                 onSubstituteFormula={onSubstituteFormula}
+                onTangentLineFormula={onTangentLineFormula}
                 onUpdateBlock={onUpdateBlock}
               />
             ))}
