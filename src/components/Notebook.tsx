@@ -10,9 +10,13 @@ type NotebookProps = {
   onCreateExplanationFromFormula: (id: string) => void
   onCreateGraphFromFormula: (id: string) => void
   onDeleteBlock: (id: string) => void
+  onDifferentiateFormula: (id: string) => void
   onDuplicateBlock: (id: string) => void
+  onExpandFormula: (id: string) => void
   onLoadSampleNotebook: () => void
   onMoveBlock: (id: string, direction: 'up' | 'down') => void
+  onSimplifyFormula: (id: string) => void
+  onSubstituteFormula: (id: string, substitution: string) => void
   onUpdateBlock: (id: string, content: string) => void
 }
 
@@ -23,9 +27,13 @@ export default function Notebook({
   onCreateExplanationFromFormula,
   onCreateGraphFromFormula,
   onDeleteBlock,
+  onDifferentiateFormula,
   onDuplicateBlock,
+  onExpandFormula,
   onLoadSampleNotebook,
   onMoveBlock,
+  onSimplifyFormula,
+  onSubstituteFormula,
   onUpdateBlock,
 }: NotebookProps) {
   const isEditing = mode === 'edit'
@@ -97,8 +105,12 @@ export default function Notebook({
                 onCreateExplanationFromFormula={onCreateExplanationFromFormula}
                 onCreateGraphFromFormula={onCreateGraphFromFormula}
                 onDeleteBlock={onDeleteBlock}
+                onDifferentiateFormula={onDifferentiateFormula}
                 onDuplicateBlock={onDuplicateBlock}
+                onExpandFormula={onExpandFormula}
                 onMoveBlock={onMoveBlock}
+                onSimplifyFormula={onSimplifyFormula}
+                onSubstituteFormula={onSubstituteFormula}
                 onUpdateBlock={onUpdateBlock}
               />
             ))}

@@ -1,7 +1,18 @@
+import { useId, useState, type FormEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import remarkMath from 'remark-math'
-import { Copy, Sparkles, Trash2, LineChart } from 'lucide-react'
+import {
+  Braces,
+  Copy,
+  Diff,
+  LineChart,
+  Replace,
+  Sparkles,
+  Trash2,
+  Wand,
+  type LucideIcon,
+} from 'lucide-react'
 import BlockEditorShell from './BlockEditorShell'
 import type { NotebookViewMode } from '../../types'
 
@@ -10,9 +21,57 @@ type FormulaBlockProps = {
   mode: NotebookViewMode
   onChange: (content: string) => void
   onDelete: () => void
+  onDifferentiate: () => void
   onDuplicate: () => void
   onExplain: () => void
+  onExpand: () => void
   onGraph: () => void
+  onSimplify: () => void
+  onSubstitute: (substitution: string) => void
+}
+
+type FormulaActionButtonProps = {
+  disabled?: boolean
+  icon: LucideIcon
+  label: string
+  onClick: () => void
+  tone?: 'danger' | 'emerald' | 'indigo' | 'neutral' | 'violet'
+}
+
+const ACTION_BUTTON_TONES: Record<
+  NonNullable<FormulaActionButtonProps['tone']>,
+  string
+> = {
+  danger:
+    'border-rose-200 bg-white text-rose-700 hover:bg-rose-50 disabled:border-slate-200',
+  emerald:
+    'border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:border-slate-300 disabled:bg-slate-300',
+  indigo:
+    'border-indigo-600 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 disabled:border-slate-300 disabled:bg-slate-300',
+  neutral:
+    'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-100',
+  violet:
+    'border-violet-600 bg-violet-600 text-white shadow-sm hover:bg-violet-700 disabled:border-slate-300 disabled:bg-slate-300',
+}
+
+function FormulaActionButton({
+  disabled = false,
+  icon: Icon,
+  label,
+  onClick,
+  tone = 'neutral',
+}: FormulaActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:text-white disabled:shadow-none ${ACTION_BUTTON_TONES[tone]}`}
+    >
+      <Icon size={14} aria-hidden="true" />
+      {label}
+    </button>
+  )
 }
 
 function toDisplayMath(content: string) {
@@ -38,11 +97,28 @@ export default function FormulaBlock({
   mode,
   onChange,
   onDelete,
+  onDifferentiate,
   onDuplicate,
   onExplain,
+  onExpand,
   onGraph,
+  onSimplify,
+  onSubstitute,
 }: FormulaBlockProps) {
   const displayMath = toDisplayMath(content)
+  const substitutionInputId = useId()
+  const [substitution, setSubstitution] = useState('x = 2')
+  const hasFormulaContent = Boolean(content.trim())
+
+  function handleSubstituteSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!hasFormulaContent || !substitution.trim()) {
+      return
+    }
+
+    onSubstitute(substitution)
+  }
 
   return (
     <BlockEditorShell
@@ -77,42 +153,86 @@ export default function FormulaBlock({
             )}
           </div>
           {mode === 'edit' && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onGraph}
-                disabled={!content.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <FormulaActionButton
+                  icon={Wand}
+                  label="Simplify"
+                  onClick={onSimplify}
+                  disabled={!hasFormulaContent}
+                  tone="indigo"
+                />
+                <FormulaActionButton
+                  icon={Braces}
+                  label="Expand"
+                  onClick={onExpand}
+                  disabled={!hasFormulaContent}
+                  tone="indigo"
+                />
+                <FormulaActionButton
+                  icon={Diff}
+                  label="d/dx"
+                  onClick={onDifferentiate}
+                  disabled={!hasFormulaContent}
+                  tone="indigo"
+                />
+              </div>
+
+              <form
+                onSubmit={handleSubstituteSubmit}
+                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-2.5 sm:flex-row sm:items-center"
               >
-                <LineChart size={14} aria-hidden="true" />
-                Graph
-              </button>
-              <button
-                type="button"
-                onClick={onExplain}
-                disabled={!content.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-              >
-                <Sparkles size={14} aria-hidden="true" />
-                Explain
-              </button>
-              <span className="mx-1 self-center h-5 w-px bg-slate-200" aria-hidden="true" />
-              <button
-                type="button"
-                onClick={onDuplicate}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                <Copy size={14} aria-hidden="true" />
-                Duplicate
-              </button>
-              <button
-                type="button"
-                onClick={onDelete}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
-              >
-                <Trash2 size={14} aria-hidden="true" />
-                Delete
-              </button>
+                <label
+                  htmlFor={substitutionInputId}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"
+                >
+                  <Replace size={14} aria-hidden="true" />
+                  Substitute
+                </label>
+                <input
+                  id={substitutionInputId}
+                  value={substitution}
+                  onChange={(event) => setSubstitution(event.target.value)}
+                  placeholder="x = 2"
+                  className="min-h-9 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+                />
+                <button
+                  type="submit"
+                  disabled={!hasFormulaContent || !substitution.trim()}
+                  className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                >
+                  <Replace size={14} aria-hidden="true" />
+                  Apply
+                </button>
+              </form>
+
+              <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                <FormulaActionButton
+                  icon={LineChart}
+                  label="Graph"
+                  onClick={onGraph}
+                  disabled={!hasFormulaContent}
+                  tone="emerald"
+                />
+                <FormulaActionButton
+                  icon={Sparkles}
+                  label="Explain"
+                  onClick={onExplain}
+                  disabled={!hasFormulaContent}
+                  tone="violet"
+                />
+                <FormulaActionButton
+                  icon={Copy}
+                  label="Duplicate"
+                  onClick={onDuplicate}
+                />
+                <FormulaActionButton
+                  icon={Trash2}
+                  label="Delete"
+                  onClick={onDelete}
+                  tone="danger"
+                />
+              </div>
             </div>
           )}
         </div>

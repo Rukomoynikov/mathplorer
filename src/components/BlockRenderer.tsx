@@ -15,8 +15,12 @@ type BlockRendererProps = {
   onCreateExplanationFromFormula: (id: string) => void
   onCreateGraphFromFormula: (id: string) => void
   onDeleteBlock: (id: string) => void
+  onDifferentiateFormula: (id: string) => void
   onDuplicateBlock: (id: string) => void
+  onExpandFormula: (id: string) => void
   onMoveBlock: (id: string, direction: 'up' | 'down') => void
+  onSimplifyFormula: (id: string) => void
+  onSubstituteFormula: (id: string, substitution: string) => void
   onUpdateBlock: (id: string, content: string) => void
 }
 
@@ -28,8 +32,12 @@ export default function BlockRenderer({
   onCreateExplanationFromFormula,
   onCreateGraphFromFormula,
   onDeleteBlock,
+  onDifferentiateFormula,
   onDuplicateBlock,
+  onExpandFormula,
   onMoveBlock,
+  onSimplifyFormula,
+  onSubstituteFormula,
   onUpdateBlock,
 }: BlockRendererProps) {
   const commonProps = {
@@ -50,9 +58,15 @@ export default function BlockRenderer({
         <FormulaBlock
           {...commonProps}
           onDelete={() => onDeleteBlock(block.id)}
+          onDifferentiate={() => onDifferentiateFormula(block.id)}
           onDuplicate={() => onDuplicateBlock(block.id)}
           onExplain={() => onCreateExplanationFromFormula(block.id)}
+          onExpand={() => onExpandFormula(block.id)}
           onGraph={() => onCreateGraphFromFormula(block.id)}
+          onSimplify={() => onSimplifyFormula(block.id)}
+          onSubstitute={(substitution) =>
+            onSubstituteFormula(block.id, substitution)
+          }
         />
       )}
       {block.type === 'graph' && <GraphBlock {...commonProps} />}

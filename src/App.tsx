@@ -21,6 +21,14 @@ import {
   normalizeFormulaContent,
 } from './lib/formulaTransforms'
 import {
+  differentiateFormula,
+  expandFormula,
+  simplifyFormula,
+  substituteFormula,
+  type AlgebraFormulaResult,
+} from './lib/algebraTools'
+import type { MathEngineResult } from './lib/mathEngine'
+import {
   chooseNotebookStorageFolder,
   isNativeStorageAvailable,
   loadWorkspaceFromFolder,
@@ -798,6 +806,62 @@ function App() {
     handleInsertBlockAfter(id, 'explanation', `Explain this formula: ${normalized}`)
   }
 
+  function handleCreateAlgebraFormula(
+    id: string,
+    transform: (content: string) => MathEngineResult<AlgebraFormulaResult>,
+    successMessage: string,
+  ) {
+    const sourceBlock = currentNotebook?.blocks.find((block) => block.id === id)
+
+    if (!sourceBlock) {
+      return
+    }
+
+    const result = transform(sourceBlock.content)
+
+    if (!result.ok) {
+      setNotice({
+        tone: 'error',
+        message: result.error.message,
+      })
+      return
+    }
+
+    handleInsertBlockAfter(id, 'formula', result.value.content)
+    setNotice({
+      tone: 'success',
+      message: successMessage,
+    })
+  }
+
+  function handleSimplifyFormula(id: string) {
+    handleCreateAlgebraFormula(id, simplifyFormula, 'Simplified formula created.')
+  }
+
+  function handleExpandFormula(id: string) {
+    handleCreateAlgebraFormula(
+      id,
+      expandFormula,
+      'Expanded formula created.',
+    )
+  }
+
+  function handleDifferentiateFormula(id: string) {
+    handleCreateAlgebraFormula(
+      id,
+      (content) => differentiateFormula(content, 'x'),
+      'Derivative formula created.',
+    )
+  }
+
+  function handleSubstituteFormula(id: string, substitution: string) {
+    handleCreateAlgebraFormula(
+      id,
+      (content) => substituteFormula(content, substitution),
+      'Substituted formula created.',
+    )
+  }
+
   function handleMoveBlock(id: string, direction: 'up' | 'down') {
     updateCurrentNotebook((notebook) => {
       const sourceIndex = notebook.blocks.findIndex((block) => block.id === id)
@@ -1070,7 +1134,11 @@ function App() {
                 onDuplicateBlock={handleDuplicateBlock}
                 onCreateExplanationFromFormula={handleCreateExplanationFromFormula}
                 onCreateGraphFromFormula={handleCreateGraphFromFormula}
+                onDifferentiateFormula={handleDifferentiateFormula}
+                onExpandFormula={handleExpandFormula}
                 onMoveBlock={handleMoveBlock}
+                onSimplifyFormula={handleSimplifyFormula}
+                onSubstituteFormula={handleSubstituteFormula}
               />
 
               {totalBlockCount > 0 && (
