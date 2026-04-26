@@ -4,6 +4,8 @@ import {
   BookOpen,
   CheckCircle2,
   Eye,
+  FolderOpen,
+  Loader2,
   PencilLine,
   Plus,
   Upload,
@@ -18,6 +20,15 @@ import {
   formulaToGraphContent,
   normalizeFormulaContent,
 } from './lib/formulaTransforms'
+import {
+  chooseNotebookStorageFolder,
+  isNativeStorageAvailable,
+  loadWorkspaceFromFolder,
+  saveWorkspaceToFolder,
+  setNotebookStorageFolder,
+  getNotebookStorageFolder,
+  WORKSPACE_FILE_NAME,
+} from './lib/nativeStorage'
 import {
   createNotebook,
   createNotebookExport,
@@ -44,10 +55,24 @@ type AppNotice = {
   tone: 'error' | 'success'
 }
 
+type StorageState =
+  | { status: 'browser' }
+  | { status: 'error'; message: string }
+  | { status: 'loading' }
+  | { status: 'needs-folder'; message?: string }
+  | { folderPath: string; status: 'ready' }
+
 type NoNotebookStateProps = {
   onCreateNotebook: () => void
   onCreateSampleNotebook: () => void
   onImportNotebook: () => void
+}
+
+type StorageSetupOverlayProps = {
+  isChoosing: boolean
+  message?: string
+  mode: 'error' | 'loading' | 'needs-folder'
+  onChooseFolder: () => void
 }
 
 type NotebookViewModeToggleProps = {
@@ -185,6 +210,29 @@ function toFileSlug(value: string) {
   )
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function createInitialStorageState(): StorageState {
+  return isNativeStorageAvailable() ? { status: 'loading' } : { status: 'browser' }
+}
+
+function getStorageStatusLabel(storageState: StorageState) {
+  switch (storageState.status) {
+    case 'browser':
+      return 'Browser preview storage'
+    case 'error':
+      return 'Storage folder needs attention'
+    case 'loading':
+      return 'Checking notebook folder...'
+    case 'needs-folder':
+      return 'Choose a notebook folder'
+    case 'ready':
+      return `${storageState.folderPath}/${WORKSPACE_FILE_NAME}`
+  }
+}
+
 function NoNotebookState({
   onCreateNotebook,
   onCreateSampleNotebook,
@@ -238,13 +286,77 @@ function NoNotebookState({
   )
 }
 
+function StorageSetupOverlay({
+  isChoosing,
+  message,
+  mode,
+  onChooseFolder,
+}: StorageSetupOverlayProps) {
+  const isLoading = mode === 'loading'
+  const isError = mode === 'error'
+  const title = isLoading
+    ? 'Opening notebook storage'
+    : isError
+      ? 'Choose a different folder'
+      : 'Choose a notebook folder'
+  const body = isLoading
+    ? 'Checking the folder configured for this app.'
+    : isError
+      ? (message ?? 'The configured notebook folder could not be opened.')
+      : 'Pick the folder where Math Notebook Lab should save its workspace file.'
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-sm">
+      <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-[0_24px_80px_-32px_rgba(15,23,42,0.5)]">
+        <div
+          className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl ${
+            isError ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-700'
+          }`}
+        >
+          {isLoading ? (
+            <Loader2 size={24} className="animate-spin" aria-hidden="true" />
+          ) : isError ? (
+            <AlertCircle size={24} aria-hidden="true" />
+          ) : (
+            <FolderOpen size={24} aria-hidden="true" />
+          )}
+        </div>
+        <h2 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">
+          {title}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
+        {!isLoading && (
+          <button
+            type="button"
+            onClick={onChooseFolder}
+            disabled={isChoosing}
+            className="mt-6 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-wait disabled:opacity-70"
+          >
+            {isChoosing ? (
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <FolderOpen size={16} aria-hidden="true" />
+            )}
+            Choose folder
+          </button>
+        )}
+      </section>
+    </div>
+  )
+}
+
 function App() {
   const [workspace, setWorkspace] = useState<NotebookWorkspace>(loadWorkspace)
+  const [storageState, setStorageState] = useState<StorageState>(
+    createInitialStorageState,
+  )
   const [notebookViewMode, setNotebookViewMode] =
     useState<NotebookViewMode>('preview')
   const [notice, setNotice] = useState<AppNotice | null>(null)
+  const [isChoosingStorageFolder, setIsChoosingStorageFolder] = useState(false)
   const notebookImportInputRef = useRef<HTMLInputElement>(null)
   const workspaceImportInputRef = useRef<HTMLInputElement>(null)
+  const nativeWorkspaceLoadedRef = useRef(!isNativeStorageAvailable())
 
   const currentNotebook =
     workspace.notebooks.find(
@@ -256,6 +368,65 @@ function App() {
   }, [currentNotebook?.id])
 
   useEffect(() => {
+    if (!isNativeStorageAvailable()) {
+      return
+    }
+
+    let isCancelled = false
+
+    async function initializeNativeStorage() {
+      try {
+        const folderPath = await getNotebookStorageFolder()
+
+        if (isCancelled) {
+          return
+        }
+
+        if (!folderPath) {
+          nativeWorkspaceLoadedRef.current = false
+          setStorageState({ status: 'needs-folder' })
+          return
+        }
+
+        const storedWorkspace = await loadWorkspaceFromFolder(folderPath)
+
+        if (isCancelled) {
+          return
+        }
+
+        if (storedWorkspace) {
+          setWorkspace(storedWorkspace)
+        } else {
+          await saveWorkspaceToFolder(folderPath, workspace)
+        }
+
+        if (isCancelled) {
+          return
+        }
+
+        nativeWorkspaceLoadedRef.current = true
+        setStorageState({ folderPath, status: 'ready' })
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        nativeWorkspaceLoadedRef.current = false
+        setStorageState({
+          status: 'error',
+          message: getErrorMessage(error),
+        })
+      }
+    }
+
+    void initializeNativeStorage()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(
         WORKSPACE_STORAGE_KEY,
@@ -265,6 +436,37 @@ function App() {
       console.error('Unable to save workspace to localStorage.', error)
     }
   }, [workspace])
+
+  useEffect(() => {
+    if (
+      storageState.status !== 'ready' ||
+      !nativeWorkspaceLoadedRef.current ||
+      !isNativeStorageAvailable()
+    ) {
+      return
+    }
+
+    let isCancelled = false
+    const timeoutId = window.setTimeout(() => {
+      void saveWorkspaceToFolder(storageState.folderPath, workspace).catch(
+        (error) => {
+          if (isCancelled) {
+            return
+          }
+
+          setNotice({
+            tone: 'error',
+            message: getErrorMessage(error),
+          })
+        },
+      )
+    }, 250)
+
+    return () => {
+      isCancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [storageState, workspace])
 
   function updateCurrentNotebook(
     updater: (notebook: NotebookModel) => NotebookModel,
@@ -298,6 +500,91 @@ function App() {
         notebooks,
       }
     })
+  }
+
+  async function handleChooseStorageFolder() {
+    setIsChoosingStorageFolder(true)
+    const wasReady = storageState.status === 'ready'
+
+    if (wasReady) {
+      nativeWorkspaceLoadedRef.current = false
+    }
+
+    try {
+      const folderPath = await chooseNotebookStorageFolder()
+      let workspaceToOpen: NotebookWorkspace | null = null
+
+      if (!folderPath) {
+        if (wasReady) {
+          nativeWorkspaceLoadedRef.current = true
+        }
+
+        if (storageState.status !== 'ready') {
+          setStorageState({
+            status: 'needs-folder',
+            message: 'Choose a folder to start using Math Notebook Lab.',
+          })
+        }
+
+        return
+      }
+
+      const isCurrentFolder =
+        storageState.status === 'ready' &&
+        storageState.folderPath === folderPath
+
+      if (isCurrentFolder) {
+        await saveWorkspaceToFolder(folderPath, workspace)
+      } else {
+        const storedWorkspace = await loadWorkspaceFromFolder(folderPath)
+
+        if (storedWorkspace) {
+          const shouldOpenExisting =
+            storageState.status !== 'ready' ||
+            window.confirm(
+              'This folder already has a Math Notebook Lab workspace. Open it now?',
+            )
+
+          if (!shouldOpenExisting) {
+            if (wasReady) {
+              nativeWorkspaceLoadedRef.current = true
+            }
+
+            return
+          }
+
+          workspaceToOpen = storedWorkspace
+        } else {
+          await saveWorkspaceToFolder(folderPath, workspace)
+        }
+      }
+
+      await setNotebookStorageFolder(folderPath)
+      if (workspaceToOpen) {
+        setWorkspace(workspaceToOpen)
+      }
+      nativeWorkspaceLoadedRef.current = true
+      setStorageState({ folderPath, status: 'ready' })
+      setNotice({
+        tone: 'success',
+        message: 'Notebook folder updated.',
+      })
+    } catch (error) {
+      const message = getErrorMessage(error)
+
+      if (storageState.status === 'ready') {
+        nativeWorkspaceLoadedRef.current = true
+        setNotice({
+          tone: 'error',
+          message,
+        })
+      } else {
+        nativeWorkspaceLoadedRef.current = false
+        setStorageState({ status: 'error', message })
+      }
+    } finally {
+      setIsChoosingStorageFolder(false)
+    }
   }
 
   function handleSelectNotebook(id: string) {
@@ -686,6 +973,17 @@ function App() {
     (count, notebook) => count + notebook.blocks.length,
     0,
   )
+  const storageFolderPath =
+    storageState.status === 'ready' ? storageState.folderPath : null
+  const storageStatusLabel = getStorageStatusLabel(storageState)
+  const storageChangeDisabled =
+    storageState.status === 'loading' ||
+    storageState.status === 'browser' ||
+    isChoosingStorageFolder
+  const shouldShowStorageSetup =
+    storageState.status === 'loading' ||
+    storageState.status === 'needs-folder' ||
+    storageState.status === 'error'
 
   return (
     <main className="min-h-screen text-slate-900">
@@ -702,6 +1000,10 @@ function App() {
           onImportNotebook={handleImportNotebookClick}
           onExportWorkspace={handleExportWorkspace}
           onImportWorkspace={handleImportWorkspaceClick}
+          onChangeStorageFolder={() => void handleChooseStorageFolder()}
+          storageFolderPath={storageFolderPath}
+          storageStatusLabel={storageStatusLabel}
+          storageChangeDisabled={storageChangeDisabled}
         />
 
         <div className="mx-auto flex min-w-0 max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
@@ -736,7 +1038,9 @@ function App() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Saved locally
+                        {storageState.status === 'ready'
+                          ? 'Saved to notebook folder'
+                          : 'Saved locally'}
                       </span>
                       <span className="text-slate-400">
                         Updated{' '}
@@ -808,6 +1112,26 @@ function App() {
           event.target.value = ''
         }}
       />
+
+      {shouldShowStorageSetup && (
+        <StorageSetupOverlay
+          mode={
+            storageState.status === 'loading'
+              ? 'loading'
+              : storageState.status === 'error'
+                ? 'error'
+                : 'needs-folder'
+          }
+          message={
+            storageState.status === 'error' ||
+            storageState.status === 'needs-folder'
+              ? storageState.message
+              : undefined
+          }
+          isChoosing={isChoosingStorageFolder}
+          onChooseFolder={() => void handleChooseStorageFolder()}
+        />
+      )}
 
       {notice && (
         <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />

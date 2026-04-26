@@ -10,6 +10,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
     "katex": "^0.16.45",
     "lucide-react": "^1.11.0",
     "mathjs": "^15.2.0",

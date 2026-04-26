@@ -6,6 +6,7 @@ import {
   FolderOpen,
   NotebookPen,
   Plus,
+  Settings,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -24,7 +25,11 @@ type WorkspaceSidebarProps = {
   onExportWorkspace: () => void
   onImportNotebook: () => void
   onImportWorkspace: () => void
+  onChangeStorageFolder: () => void
   onSelectNotebook: (id: string) => void
+  storageFolderPath: string | null
+  storageStatusLabel: string
+  storageChangeDisabled?: boolean
 }
 
 type SidebarButtonProps = {
@@ -102,7 +107,11 @@ export default function WorkspaceSidebar({
   onExportWorkspace,
   onImportNotebook,
   onImportWorkspace,
+  onChangeStorageFolder,
   onSelectNotebook,
+  storageFolderPath,
+  storageStatusLabel,
+  storageChangeDisabled = false,
 }: WorkspaceSidebarProps) {
   const currentNotebook = notebooks.find(
     (notebook) => notebook.id === currentNotebookId,
@@ -122,6 +131,38 @@ export default function WorkspaceSidebar({
             Math Notebook Lab
           </p>
           <h1 className="text-base font-semibold text-slate-900">Workspace</h1>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200/80 bg-white/70 p-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"
+          >
+            <Settings size={15} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Settings
+            </p>
+            <p className="text-sm font-semibold text-slate-900">Storage</p>
+          </div>
+        </div>
+        <p
+          title={storageFolderPath ?? storageStatusLabel}
+          className="mt-3 break-all rounded-lg bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600"
+        >
+          {storageFolderPath ?? storageStatusLabel}
+        </p>
+        <div className="mt-3">
+          <SidebarButton
+            onClick={onChangeStorageFolder}
+            disabled={storageChangeDisabled}
+          >
+            <FolderOpen size={14} aria-hidden="true" />
+            Change folder
+          </SidebarButton>
         </div>
       </div>
 
