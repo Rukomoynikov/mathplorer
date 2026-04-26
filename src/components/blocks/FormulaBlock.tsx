@@ -1,11 +1,10 @@
-import { useId, useMemo, useState, type FormEvent } from 'react'
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import remarkMath from 'remark-math'
 import {
   Braces,
   Calculator,
-  Copy,
   Diff,
   EqualApproximately,
   LineChart,
@@ -13,7 +12,6 @@ import {
   Sigma,
   Sparkles,
   Tangent,
-  Trash2,
   Variable,
   Wand,
   type LucideIcon,
@@ -21,15 +19,14 @@ import {
 import BlockEditorShell from './BlockEditorShell'
 import type { NotebookViewMode } from '../../types'
 import { createDerivativePreview } from '../../lib/calculusTools'
+import { parseExpression } from '../../lib/mathEngine'
 
 type FormulaBlockProps = {
   content: string
   mode: NotebookViewMode
   onChange: (content: string) => void
-  onDelete: () => void
   onDifferentiate: (variable: string) => void
   onEvaluateDerivative: (variable: string, point: string) => void
-  onDuplicate: () => void
   onExplain: () => void
   onExpand: () => void
   onGraph: () => void
@@ -47,24 +44,21 @@ type FormulaActionButtonProps = {
   disabled?: boolean
   icon: LucideIcon
   label: string
-  onClick: () => void
-  tone?: 'danger' | 'emerald' | 'indigo' | 'neutral' | 'violet'
+  onClick?: () => void
+  type?: 'button' | 'submit'
+  tone?: 'accent' | 'neutral' | 'success'
 }
 
 const ACTION_BUTTON_TONES: Record<
   NonNullable<FormulaActionButtonProps['tone']>,
   string
 > = {
-  danger:
-    'border-rose-200 bg-white text-rose-700 hover:bg-rose-50 disabled:border-slate-200',
-  emerald:
-    'border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:border-slate-300 disabled:bg-slate-300',
-  indigo:
-    'border-indigo-600 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 disabled:border-slate-300 disabled:bg-slate-300',
+  accent:
+    'border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100',
   neutral:
-    'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-100',
-  violet:
-    'border-violet-600 bg-violet-600 text-white shadow-sm hover:bg-violet-700 disabled:border-slate-300 disabled:bg-slate-300',
+    'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+  success:
+    'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100',
 }
 
 function FormulaActionButton({
@@ -72,17 +66,18 @@ function FormulaActionButton({
   icon: Icon,
   label,
   onClick,
+  type = 'button',
   tone = 'neutral',
 }: FormulaActionButtonProps) {
   return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:text-white disabled:shadow-none ${ACTION_BUTTON_TONES[tone]}`}
+      className={`inline-flex min-h-8 min-w-0 items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold leading-5 transition focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 ${ACTION_BUTTON_TONES[tone]}`}
     >
-      <Icon size={14} aria-hidden="true" />
-      {label}
+      <Icon size={13} aria-hidden="true" className="shrink-0" />
+      <span className="truncate">{label}</span>
     </button>
   )
 }
@@ -106,8 +101,8 @@ function FormulaInlineInput({
 }: FormulaInlineInputProps) {
   return (
     <label htmlFor={id} className="flex min-w-0 flex-col gap-1">
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-        {Icon && <Icon size={13} aria-hidden="true" />}
+      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        {Icon && <Icon size={12} aria-hidden="true" />}
         {label}
       </span>
       <input
@@ -115,9 +110,27 @@ function FormulaInlineInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+        className="min-h-8 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs leading-5 text-slate-900 shadow-sm transition focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100"
       />
     </label>
+  )
+}
+
+type FormulaSectionProps = {
+  children: ReactNode
+  icon: LucideIcon
+  title: string
+}
+
+function FormulaSection({ children, icon: Icon, title }: FormulaSectionProps) {
+  return (
+    <section className="space-y-2 border-t border-slate-200 pt-3">
+      <h4 className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <Icon size={12} aria-hidden="true" />
+        {title}
+      </h4>
+      {children}
+    </section>
   )
 }
 
@@ -147,14 +160,322 @@ function variableToDisplayTex(variable: string) {
   return `\\mathrm{${variable.replace(/_/g, '\\_')}}`
 }
 
+function MathPreview({ children }: { children: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkMath]}
+      rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }]]}
+    >
+      {children}
+    </ReactMarkdown>
+  )
+}
+
+type FormulaPreviewProps = {
+  content: string
+  mode: NotebookViewMode
+}
+
+function FormulaPreview({ content, mode }: FormulaPreviewProps) {
+  const displayMath = toDisplayMath(content)
+  const validation = useMemo(() => {
+    if (!content.trim()) {
+      return null
+    }
+
+    return parseExpression(content)
+  }, [content])
+  const hasError = validation?.ok === false
+
+  if (mode === 'preview') {
+    return displayMath ? (
+      <div className="overflow-x-auto text-center text-slate-950">
+        <MathPreview>{displayMath}</MathPreview>
+      </div>
+    ) : null
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+        Formula preview
+      </p>
+      <div
+        aria-live="polite"
+        className={`min-h-24 overflow-x-auto rounded-lg border px-3.5 py-4 text-slate-900 ${
+          hasError
+            ? 'border-amber-200 bg-amber-50/60'
+            : 'border-slate-200 bg-slate-50/70'
+        }`}
+      >
+        {hasError ? (
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-amber-800">
+              This formula needs a quick fix before math tools can use it.
+            </p>
+            <p className="text-xs leading-5 text-amber-700">
+              {validation.error.message}
+            </p>
+          </div>
+        ) : displayMath ? (
+          <div className="text-center">
+            <MathPreview>{displayMath}</MathPreview>
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-slate-500">
+            Enter a formula to preview it here.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+type TransformToolsProps = {
+  disabled: boolean
+  onExpand: () => void
+  onSimplify: () => void
+}
+
+function TransformTools({ disabled, onExpand, onSimplify }: TransformToolsProps) {
+  return (
+    <FormulaSection icon={Wand} title="Transform">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <FormulaActionButton
+          icon={Wand}
+          label="Simplify"
+          onClick={onSimplify}
+          disabled={disabled}
+          tone="accent"
+        />
+        <FormulaActionButton
+          icon={Braces}
+          label="Expand"
+          onClick={onExpand}
+          disabled={disabled}
+        />
+      </div>
+    </FormulaSection>
+  )
+}
+
+type CalculusToolsProps = {
+  calculusPoint: string
+  calculusPointInputId: string
+  calculusVariable: string
+  calculusVariableInputId: string
+  canRunCalculus: boolean
+  derivativePreviewMath: string
+  derivativePreviewMessage: string
+  integralLowerBound: string
+  integralLowerInputId: string
+  integralUpperBound: string
+  integralUpperInputId: string
+  isDerivativePreviewError: boolean
+  onDerivativeAtPointSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onDifferentiate: (variable: string) => void
+  onIntegralSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onIntegralLowerChange: (value: string) => void
+  onIntegralUpperChange: (value: string) => void
+  onPointChange: (value: string) => void
+  onTangentLine: (variable: string, point: string) => void
+  onVariableChange: (value: string) => void
+}
+
+function CalculusTools({
+  calculusPoint,
+  calculusPointInputId,
+  calculusVariable,
+  calculusVariableInputId,
+  canRunCalculus,
+  derivativePreviewMath,
+  derivativePreviewMessage,
+  integralLowerBound,
+  integralLowerInputId,
+  integralUpperBound,
+  integralUpperInputId,
+  isDerivativePreviewError,
+  onDerivativeAtPointSubmit,
+  onDifferentiate,
+  onIntegralSubmit,
+  onIntegralLowerChange,
+  onIntegralUpperChange,
+  onPointChange,
+  onTangentLine,
+  onVariableChange,
+}: CalculusToolsProps) {
+  const canUsePoint = canRunCalculus && Boolean(calculusPoint.trim())
+  const canIntegrate =
+    canRunCalculus &&
+    Boolean(integralLowerBound.trim()) &&
+    Boolean(integralUpperBound.trim())
+
+  return (
+    <FormulaSection icon={Diff} title="Calculus">
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="min-h-16 overflow-x-auto rounded-md bg-slate-50 px-3 py-2.5">
+          {derivativePreviewMath ? (
+            <div className="text-center text-sm text-slate-900">
+              <MathPreview>{derivativePreviewMath}</MathPreview>
+            </div>
+          ) : (
+            <p
+              className={`text-xs leading-5 ${
+                isDerivativePreviewError ? 'text-amber-700' : 'text-slate-500'
+              }`}
+            >
+              {derivativePreviewMessage}
+            </p>
+          )}
+        </div>
+
+        <form onSubmit={onDerivativeAtPointSubmit} className="mt-3 space-y-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <FormulaInlineInput
+              id={calculusVariableInputId}
+              icon={Variable}
+              label="Variable"
+              value={calculusVariable}
+              onChange={onVariableChange}
+              placeholder="x"
+            />
+            <FormulaInlineInput
+              id={calculusPointInputId}
+              icon={Calculator}
+              label="Point"
+              value={calculusPoint}
+              onChange={onPointChange}
+              placeholder="2"
+            />
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <FormulaActionButton
+              icon={Diff}
+              label="Derivative"
+              onClick={() => onDifferentiate(calculusVariable)}
+              disabled={!canRunCalculus}
+              tone="accent"
+            />
+            <FormulaActionButton
+              icon={EqualApproximately}
+              label="At point"
+              type="submit"
+              disabled={!canUsePoint}
+            />
+            <FormulaActionButton
+              icon={Tangent}
+              label="Tangent"
+              onClick={() => onTangentLine(calculusVariable, calculusPoint)}
+              disabled={!canUsePoint}
+            />
+          </div>
+        </form>
+
+        <form
+          onSubmit={onIntegralSubmit}
+          className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+        >
+          <FormulaInlineInput
+            id={integralLowerInputId}
+            label="From"
+            value={integralLowerBound}
+            onChange={onIntegralLowerChange}
+            placeholder="0"
+          />
+          <FormulaInlineInput
+            id={integralUpperInputId}
+            label="To"
+            value={integralUpperBound}
+            onChange={onIntegralUpperChange}
+            placeholder="1"
+          />
+          <FormulaActionButton
+            icon={Sigma}
+            label="Integral"
+            type="submit"
+            disabled={!canIntegrate}
+          />
+        </form>
+      </div>
+    </FormulaSection>
+  )
+}
+
+type SubstitutionToolProps = {
+  disabled: boolean
+  inputId: string
+  onChange: (value: string) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  substitution: string
+}
+
+function SubstitutionTool({
+  disabled,
+  inputId,
+  onChange,
+  onSubmit,
+  substitution,
+}: SubstitutionToolProps) {
+  return (
+    <FormulaSection icon={Replace} title="Substitute">
+      <form
+        onSubmit={onSubmit}
+        className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+      >
+        <FormulaInlineInput
+          id={inputId}
+          label="Value"
+          value={substitution}
+          onChange={onChange}
+          placeholder="x = 2"
+        />
+        <FormulaActionButton
+          icon={Replace}
+          label="Apply"
+          type="submit"
+          disabled={disabled}
+          tone="accent"
+        />
+      </form>
+    </FormulaSection>
+  )
+}
+
+type OutputActionsProps = {
+  disabled: boolean
+  onExplain: () => void
+  onGraph: () => void
+}
+
+function OutputActions({ disabled, onExplain, onGraph }: OutputActionsProps) {
+  return (
+    <FormulaSection icon={LineChart} title="Output">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <FormulaActionButton
+          icon={LineChart}
+          label="Graph"
+          onClick={onGraph}
+          disabled={disabled}
+          tone="success"
+        />
+        <FormulaActionButton
+          icon={Sparkles}
+          label="Explain"
+          onClick={onExplain}
+          disabled={disabled}
+        />
+      </div>
+    </FormulaSection>
+  )
+}
+
 export default function FormulaBlock({
   content,
   mode,
   onChange,
-  onDelete,
   onDifferentiate,
   onEvaluateDerivative,
-  onDuplicate,
   onExplain,
   onExpand,
   onGraph,
@@ -163,7 +484,6 @@ export default function FormulaBlock({
   onSubstitute,
   onTangentLine,
 }: FormulaBlockProps) {
-  const displayMath = toDisplayMath(content)
   const substitutionInputId = useId()
   const calculusVariableInputId = useId()
   const calculusPointInputId = useId()
@@ -191,6 +511,9 @@ export default function FormulaBlock({
           derivativePreview.value.derivativeTex
         }\n$$`
       : ''
+  const derivativePreviewMessage = derivativePreview?.ok === false
+    ? derivativePreview.error.message
+    : 'Add a formula to preview its derivative.'
 
   function handleSubstituteSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -237,221 +560,48 @@ export default function FormulaBlock({
       mode={mode}
       output={
         <div>
-          {mode === 'edit' && (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Formula preview
-            </p>
-          )}
-          <div
-            className={
-              mode === 'preview'
-                ? 'overflow-x-auto text-center text-slate-950'
-                : 'mt-3 rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 text-slate-900'
-            }
-          >
-            {displayMath ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }]]}
-              >
-                {displayMath}
-              </ReactMarkdown>
-            ) : mode === 'preview' ? null : (
-              <p className="text-sm text-slate-500">
-                Enter a formula to preview it here.
-              </p>
-            )}
-          </div>
+          <FormulaPreview content={content} mode={mode} />
           {mode === 'edit' && (
             <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <FormulaActionButton
-                  icon={Wand}
-                  label="Simplify"
-                  onClick={onSimplify}
-                  disabled={!hasFormulaContent}
-                  tone="indigo"
-                />
-                <FormulaActionButton
-                  icon={Braces}
-                  label="Expand"
-                  onClick={onExpand}
-                  disabled={!hasFormulaContent}
-                  tone="indigo"
-                />
-              </div>
-
-              <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-indigo-700">
-                  <Diff size={13} aria-hidden="true" />
-                  Calculus
-                </div>
-
-                <div className="mt-3 rounded-md border border-indigo-100 bg-white px-3 py-2.5">
-                  {derivativePreview?.ok === true ? (
-                    <div className="overflow-x-auto text-center text-sm text-slate-900">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkMath]}
-                        rehypePlugins={[
-                          [rehypeKatex, { strict: false, throwOnError: false }],
-                        ]}
-                      >
-                        {derivativePreviewMath}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p
-                      className={`text-xs leading-5 ${
-                        derivativePreview
-                          ? 'text-amber-700'
-                          : 'text-slate-500'
-                      }`}
-                    >
-                      {derivativePreview
-                        ? derivativePreview.error.message
-                        : 'Add a formula to preview its derivative.'}
-                    </p>
-                  )}
-                </div>
-
-                <form
-                  onSubmit={handleDerivativeAtPointSubmit}
-                  className="mt-3 space-y-3"
-                >
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <FormulaInlineInput
-                      id={calculusVariableInputId}
-                      icon={Variable}
-                      label="Variable"
-                      value={calculusVariable}
-                      onChange={setCalculusVariable}
-                      placeholder="x"
-                    />
-                    <FormulaInlineInput
-                      id={calculusPointInputId}
-                      icon={Calculator}
-                      label="Point"
-                      value={calculusPoint}
-                      onChange={setCalculusPoint}
-                      placeholder="2"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <FormulaActionButton
-                      icon={Diff}
-                      label="Derivative"
-                      onClick={() => onDifferentiate(calculusVariable)}
-                      disabled={!canRunCalculus}
-                      tone="indigo"
-                    />
-                    <FormulaActionButton
-                      icon={EqualApproximately}
-                      label="At point"
-                      onClick={() =>
-                        onEvaluateDerivative(calculusVariable, calculusPoint)
-                      }
-                      disabled={!canRunCalculus || !calculusPoint.trim()}
-                      tone="indigo"
-                    />
-                    <FormulaActionButton
-                      icon={Tangent}
-                      label="Tangent"
-                      onClick={() => onTangentLine(calculusVariable, calculusPoint)}
-                      disabled={!canRunCalculus || !calculusPoint.trim()}
-                      tone="indigo"
-                    />
-                  </div>
-                </form>
-
-                <form
-                  onSubmit={handleDefiniteIntegralSubmit}
-                  className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-                >
-                  <FormulaInlineInput
-                    id={integralLowerInputId}
-                    label="From"
-                    value={integralLowerBound}
-                    onChange={setIntegralLowerBound}
-                    placeholder="0"
-                  />
-                  <FormulaInlineInput
-                    id={integralUpperInputId}
-                    label="To"
-                    value={integralUpperBound}
-                    onChange={setIntegralUpperBound}
-                    placeholder="1"
-                  />
-                  <button
-                    type="submit"
-                    disabled={
-                      !canRunCalculus ||
-                      !integralLowerBound.trim() ||
-                      !integralUpperBound.trim()
-                    }
-                    className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                  >
-                    <Sigma size={14} aria-hidden="true" />
-                    Integral
-                  </button>
-                </form>
-              </div>
-
-              <form
+              <TransformTools
+                disabled={!hasFormulaContent}
+                onExpand={onExpand}
+                onSimplify={onSimplify}
+              />
+              <CalculusTools
+                calculusPoint={calculusPoint}
+                calculusPointInputId={calculusPointInputId}
+                calculusVariable={calculusVariable}
+                calculusVariableInputId={calculusVariableInputId}
+                canRunCalculus={canRunCalculus}
+                derivativePreviewMath={derivativePreviewMath}
+                derivativePreviewMessage={derivativePreviewMessage}
+                integralLowerBound={integralLowerBound}
+                integralLowerInputId={integralLowerInputId}
+                integralUpperBound={integralUpperBound}
+                integralUpperInputId={integralUpperInputId}
+                isDerivativePreviewError={derivativePreview?.ok === false}
+                onDerivativeAtPointSubmit={handleDerivativeAtPointSubmit}
+                onDifferentiate={onDifferentiate}
+                onIntegralSubmit={handleDefiniteIntegralSubmit}
+                onIntegralLowerChange={setIntegralLowerBound}
+                onIntegralUpperChange={setIntegralUpperBound}
+                onPointChange={setCalculusPoint}
+                onTangentLine={onTangentLine}
+                onVariableChange={setCalculusVariable}
+              />
+              <SubstitutionTool
+                disabled={!hasFormulaContent || !substitution.trim()}
+                inputId={substitutionInputId}
+                onChange={setSubstitution}
                 onSubmit={handleSubstituteSubmit}
-                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-2.5 sm:flex-row sm:items-center"
-              >
-                <label
-                  htmlFor={substitutionInputId}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"
-                >
-                  <Replace size={14} aria-hidden="true" />
-                  Substitute
-                </label>
-                <input
-                  id={substitutionInputId}
-                  value={substitution}
-                  onChange={(event) => setSubstitution(event.target.value)}
-                  placeholder="x = 2"
-                  className="min-h-9 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-100"
-                />
-                <button
-                  type="submit"
-                  disabled={!hasFormulaContent || !substitution.trim()}
-                  className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                >
-                  <Replace size={14} aria-hidden="true" />
-                  Apply
-                </button>
-              </form>
-
-              <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
-                <FormulaActionButton
-                  icon={LineChart}
-                  label="Graph"
-                  onClick={onGraph}
-                  disabled={!hasFormulaContent}
-                  tone="emerald"
-                />
-                <FormulaActionButton
-                  icon={Sparkles}
-                  label="Explain"
-                  onClick={onExplain}
-                  disabled={!hasFormulaContent}
-                  tone="violet"
-                />
-                <FormulaActionButton
-                  icon={Copy}
-                  label="Duplicate"
-                  onClick={onDuplicate}
-                />
-                <FormulaActionButton
-                  icon={Trash2}
-                  label="Delete"
-                  onClick={onDelete}
-                  tone="danger"
-                />
-              </div>
+                substitution={substitution}
+              />
+              <OutputActions
+                disabled={!hasFormulaContent}
+                onExplain={onExplain}
+                onGraph={onGraph}
+              />
             </div>
           )}
         </div>
@@ -462,7 +612,7 @@ export default function FormulaBlock({
         onChange={(event) => onChange(event.target.value)}
         rows={4}
         placeholder="f(x) = x^2 - 4x + 3"
-        className="min-h-28 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+        className="min-h-28 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100"
       />
     </BlockEditorShell>
   )

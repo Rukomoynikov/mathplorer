@@ -68,14 +68,12 @@ export default function BlockRenderer({
       {block.type === 'formula' && (
         <FormulaBlock
           {...commonProps}
-          onDelete={() => onDeleteBlock(block.id)}
           onDifferentiate={(variable) =>
             onDifferentiateFormula(block.id, variable)
           }
           onEvaluateDerivative={(variable, point) =>
             onEvaluateDerivativeFormula(block.id, variable, point)
           }
-          onDuplicate={() => onDuplicateBlock(block.id)}
           onExplain={() => onCreateExplanationFromFormula(block.id)}
           onExpand={() => onExpandFormula(block.id)}
           onGraph={() => onCreateGraphFromFormula(block.id)}
