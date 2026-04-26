@@ -4,6 +4,11 @@ import {
   parseExpression,
   type NumericScope,
 } from './mathEngine'
+import {
+  analyzeGraphFunctions,
+  type GraphAnalysisFunctionInput,
+  type GraphAnalysisResult,
+} from './graphAnalysis'
 
 export type PlotPoint = {
   x: number
@@ -66,6 +71,7 @@ export type PlotResult =
       warnings: PlotWarning[]
     }
   | {
+      analysis: GraphAnalysisResult
       kind: 'plot'
       series: PlotSeries[]
       viewport: PlotViewport
@@ -764,6 +770,7 @@ export function createPlot(rawInput: string, options: CreatePlotOptions = {}): P
   }
   const warnings = [...parsed.warnings]
   const series: PlotSeries[] = []
+  const analysisFunctions: GraphAnalysisFunctionInput[] = []
 
   for (const sampled of sampledSeries) {
     if (sampled.definition.kind === 'points') {
@@ -819,13 +826,24 @@ export function createPlot(rawInput: string, options: CreatePlotOptions = {}): P
     }
 
     if (sampled.definition.kind === 'function') {
+      const definition = sampled.definition
+
       series.push({
-        color: sampled.definition.color,
-        expression: sampled.definition.expression,
-        id: sampled.definition.id,
+        color: definition.color,
+        expression: definition.expression,
+        id: definition.id,
         kind: 'function',
-        label: sampled.definition.label,
+        label: definition.label,
         segments,
+      })
+      analysisFunctions.push({
+        color: definition.color,
+        evaluate: (x) => definition.evaluate({ x }),
+        expression: definition.expression,
+        id: definition.id,
+        label: definition.label,
+        line: definition.line,
+        samples: sampled.points,
       })
     } else {
       series.push({
@@ -846,7 +864,14 @@ export function createPlot(rawInput: string, options: CreatePlotOptions = {}): P
     }
   }
 
+  const analysis = analyzeGraphFunctions(analysisFunctions, viewport)
+
+  for (const warning of analysis.warnings) {
+    warnings.push(createWarning(warning.line, warning.seriesLabel, warning.message))
+  }
+
   return {
+    analysis,
     kind: 'plot',
     series,
     viewport,

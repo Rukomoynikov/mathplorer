@@ -50,6 +50,19 @@ type HoverState = {
 }
 
 type ViewportDraft = Record<keyof PlotViewport, string>
+type PlotAnalysis = Extract<PlotResult, { kind: 'plot' }>['analysis']
+type AnalysisPointFeature =
+  | PlotAnalysis['extrema'][number]
+  | PlotAnalysis['intersections'][number]
+  | PlotAnalysis['xIntercepts'][number]
+  | PlotAnalysis['yIntercepts'][number]
+
+type AnalysisRow = {
+  color: string
+  detail: string
+  id: string
+  label: string
+}
 
 const VIEWPORT_KEYS: Array<keyof PlotViewport> = [
   'xMin',
@@ -64,6 +77,7 @@ const VIEWPORT_LABELS: Record<keyof PlotViewport, string> = {
   yMax: 'y max',
   yMin: 'y min',
 }
+const ANALYSIS_GROUP_LIMIT = 4
 
 function GraphMessage({
   mode,
@@ -117,6 +131,139 @@ function GraphWarnings({ warnings }: { warnings: PlotWarning[] }) {
         </p>
       ))}
       {warnings.length > 4 && <p>{warnings.length - 4} more warnings</p>}
+    </div>
+  )
+}
+
+function formatAnalysisPoint(point: PlotPoint) {
+  return `(${formatGraphTick(point.x)}, ${formatGraphTick(point.y)})`
+}
+
+function formatSeriesPair(feature: PlotAnalysis['intersections'][number]) {
+  return `${feature.seriesLabel} & ${feature.otherSeriesLabel}`
+}
+
+function getAnalysisPointFeatures(analysis: PlotAnalysis): AnalysisPointFeature[] {
+  return [
+    ...analysis.xIntercepts,
+    ...analysis.yIntercepts,
+    ...analysis.intersections,
+    ...analysis.extrema,
+  ]
+}
+
+function getFeatureMarkerLabel(feature: AnalysisPointFeature) {
+  if (feature.kind === 'intersection') {
+    return `Approximate intersection of ${formatSeriesPair(
+      feature,
+    )} at ${formatAnalysisPoint(feature.point)}`
+  }
+
+  return `Approximate ${feature.kind} of ${
+    feature.seriesLabel
+  } at ${formatAnalysisPoint(feature.point)}`
+}
+
+function createAnalysisRows(analysis: PlotAnalysis) {
+  return [
+    {
+      rows: analysis.xIntercepts.map((feature): AnalysisRow => ({
+        color: feature.color,
+        detail: formatAnalysisPoint(feature.point),
+        id: feature.id,
+        label: feature.seriesLabel,
+      })),
+      title: 'x-intercepts',
+    },
+    {
+      rows: analysis.yIntercepts.map((feature): AnalysisRow => ({
+        color: feature.color,
+        detail: formatAnalysisPoint(feature.point),
+        id: feature.id,
+        label: feature.seriesLabel,
+      })),
+      title: 'y-intercepts',
+    },
+    {
+      rows: analysis.intersections.map((feature): AnalysisRow => ({
+        color: feature.color,
+        detail: formatAnalysisPoint(feature.point),
+        id: feature.id,
+        label: formatSeriesPair(feature),
+      })),
+      title: 'intersections',
+    },
+    {
+      rows: analysis.extrema.map((feature): AnalysisRow => ({
+        color: feature.color,
+        detail: `${feature.kind} ${formatAnalysisPoint(feature.point)}`,
+        id: feature.id,
+        label: feature.seriesLabel,
+      })),
+      title: 'extrema',
+    },
+    {
+      rows: analysis.warnings.map((warning): AnalysisRow => ({
+        color: '#d97706',
+        detail: `near x = ${formatGraphTick(warning.x)}`,
+        id: warning.id,
+        label: warning.seriesLabel,
+      })),
+      title: 'warnings',
+    },
+  ].filter((group) => group.rows.length > 0)
+}
+
+function GraphAnalysisPanel({ analysis }: { analysis: PlotAnalysis }) {
+  const groups = createAnalysisRows(analysis)
+
+  if (groups.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        Approximate analysis
+      </p>
+      <div className="mt-2 grid gap-3 md:grid-cols-2">
+        {groups.map((group) => {
+          const visibleRows = group.rows.slice(0, ANALYSIS_GROUP_LIMIT)
+          const hiddenCount = group.rows.length - visibleRows.length
+
+          return (
+            <div key={group.title} className="min-w-0">
+              <p className="text-xs font-semibold capitalize text-slate-700">
+                {group.title}
+              </p>
+              <div className="mt-1 space-y-1">
+                {visibleRows.map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex min-w-0 items-center gap-2 text-xs leading-5 text-slate-600"
+                    title={`${row.label}: ${row.detail}`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: row.color }}
+                    />
+                    <span className="min-w-0 truncate">{row.label}</span>
+                    <code className="shrink-0 font-mono text-[11px] text-slate-800">
+                      {row.detail}
+                    </code>
+                  </div>
+                ))}
+                {hiddenCount > 0 && (
+                  <p className="text-xs text-slate-500">
+                    {hiddenCount} more approximate results
+                  </p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -463,6 +610,7 @@ function GraphPreview({
   const tooltipY = hover
     ? Math.min(Math.max(hover.svgY - tooltipHeight - 12, 8), SVG_HEIGHT - tooltipHeight - 8)
     : 0
+  const analysisPointFeatures = getAnalysisPointFeatures(plot.analysis)
 
   return (
     <figure
@@ -636,6 +784,41 @@ function GraphPreview({
               />
             ))
           })}
+
+          {plot.analysis.warnings.map((warning) => (
+            <line
+              key={warning.id}
+              x1={scaleX(warning.x)}
+              x2={scaleX(warning.x)}
+              y1={PADDING}
+              y2={SVG_HEIGHT - PADDING}
+              stroke="#d97706"
+              strokeDasharray="5 5"
+              strokeWidth="2"
+              opacity="0.85"
+            >
+              <title>{warning.message}</title>
+            </line>
+          ))}
+
+          {analysisPointFeatures.map((feature) => {
+            const isIntersection = feature.kind === 'intersection'
+
+            return (
+              <g key={feature.id}>
+                <circle
+                  cx={scaleX(feature.point.x)}
+                  cy={scaleY(feature.point.y)}
+                  r={isIntersection ? '5.5' : '5'}
+                  fill={isIntersection ? feature.color : '#ffffff'}
+                  fillOpacity={isIntersection ? '0.9' : '1'}
+                  stroke={isIntersection ? '#0f172a' : feature.color}
+                  strokeWidth={isIntersection ? '2' : '2.5'}
+                />
+                <title>{getFeatureMarkerLabel(feature)}</title>
+              </g>
+            )
+          })}
         </g>
 
         {hover && (
@@ -693,6 +876,8 @@ function GraphPreview({
           </g>
         )}
       </svg>
+
+      <GraphAnalysisPanel analysis={plot.analysis} />
 
       <div className="border-t border-slate-100 px-3 py-2">
         <code className="font-mono text-xs text-slate-600">
