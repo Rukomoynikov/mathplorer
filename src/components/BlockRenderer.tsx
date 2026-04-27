@@ -3,6 +3,9 @@ import { BLOCK_META } from './blockMeta'
 import ExplanationBlock from './blocks/ExplanationBlock'
 import FormulaBlock from './blocks/FormulaBlock'
 import GraphBlock from './blocks/GraphBlock'
+import CombinatoricsBlock from './blocks/CombinatoricsBlock'
+import ProbabilityBlock from './blocks/ProbabilityBlock'
+import SetBlock from './blocks/SetBlock'
 import SolverBlock from './blocks/SolverBlock'
 import TextBlock from './blocks/TextBlock'
 import type { Block, NotebookViewMode } from '../types'
@@ -97,6 +100,11 @@ export default function BlockRenderer({
       {block.type === 'graph' && <GraphBlock {...commonProps} />}
       {block.type === 'solver' && <SolverBlock {...commonProps} />}
       {block.type === 'explanation' && <ExplanationBlock {...commonProps} />}
+      {block.type === 'set' && <SetBlock {...commonProps} />}
+      {block.type === 'combinatorics' && (
+        <CombinatoricsBlock {...commonProps} />
+      )}
+      {block.type === 'probability' && <ProbabilityBlock {...commonProps} />}
     </>
   )
 

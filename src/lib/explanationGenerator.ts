@@ -6,7 +6,7 @@ export type ExplanationResult = {
 }
 
 const FALLBACK_TOPICS =
-  'slope, linear equations, quadratics, parabolas, factoring, derivatives, or graphs'
+  'sets, combinatorics, probability, slope, linear equations, quadratics, parabolas, factoring, derivatives, or graphs'
 
 function hasAnyKeyword(prompt: string, keywords: string[]) {
   return keywords.some((keyword) => prompt.includes(keyword))
@@ -19,6 +19,89 @@ function hasLinearEquationPattern(prompt: string) {
 // Keep this pure and deterministic so an LLM-backed service can later swap in here.
 export function generateLocalExplanation(prompt: string): ExplanationResult {
   const normalizedPrompt = prompt.toLowerCase()
+
+  if (
+    hasAnyKeyword(normalizedPrompt, [
+      'probability',
+      'sample space',
+      'sample spaces',
+      'event',
+      'events',
+      'favorable',
+      'complement rule',
+      'independent event',
+      'independent events',
+    ])
+  ) {
+    return {
+      title: 'Probability Counts Favorable Outcomes',
+      topic: 'probability',
+      paragraphs: [
+        'A sample space is the set of all possible outcomes. An event is a subset of that sample space, such as rolling an even number on a die.',
+        'When outcomes are equally likely, probability is favorable outcomes divided by total outcomes. The answer can be written as a fraction, decimal, or percent.',
+        'The complement rule says that the probability of not getting an event is 1 minus the probability of getting it. Independent events do not change each other, so simple combined probabilities multiply.',
+      ],
+      examples: [
+        'Rolling a 5 or 6 on a fair die has probability 2 / 6 = 1 / 3.',
+        'If P(A) = 3 / 8, then P(not A) = 5 / 8.',
+      ],
+    }
+  }
+
+  if (
+    hasAnyKeyword(normalizedPrompt, [
+      'set',
+      'sets',
+      'membership',
+      'union',
+      'intersection',
+      'venn',
+      'symmetric difference',
+      'difference',
+    ])
+  ) {
+    return {
+      title: 'Sets Organize Membership',
+      topic: 'sets',
+      paragraphs: [
+        'A set is a collection of distinct objects. Membership asks whether an object belongs to that collection.',
+        'Union combines everything from two sets, while intersection keeps only the shared overlap. Difference keeps what is in one set after removing what also appears in the other.',
+        'A Venn diagram turns those operations into regions: left-only, overlap, right-only, and outside the sets when a universal set is part of the problem.',
+      ],
+      examples: [
+        'If A = {1, 2, 3} and B = {3, 4}, then A union B is {1, 2, 3, 4}.',
+        'The intersection is {3}, because 3 is the only shared member.',
+      ],
+    }
+  }
+
+  if (
+    hasAnyKeyword(normalizedPrompt, [
+      'combinatorics',
+      'factorial',
+      'permutation',
+      'permutations',
+      'combination',
+      'combinations',
+      'arranging',
+      'choosing',
+      'multiplication principle',
+    ])
+  ) {
+    return {
+      title: 'Counting Choices Without Listing Them',
+      topic: 'combinatorics',
+      paragraphs: [
+        'Combinatorics gives you tools for counting outcomes efficiently. The multiplication principle is the core idea: independent stages multiply together.',
+        'A factorial counts full arrangements of distinct items. For example, 5! counts how many ways five items can be ordered.',
+        'Permutations count ordered selections, so arranging AB is different from BA. Combinations count groups, so AB and BA describe the same choice.',
+      ],
+      examples: [
+        'P(5, 2) = 20 counts ordered two-item arrangements from five items.',
+        'C(5, 2) = 10 counts two-item groups from five items.',
+      ],
+    }
+  }
 
   if (
     hasAnyKeyword(normalizedPrompt, [

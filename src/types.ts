@@ -1,4 +1,12 @@
-export type BlockType = 'text' | 'formula' | 'graph' | 'solver' | 'explanation'
+export type BlockType =
+  | 'text'
+  | 'formula'
+  | 'graph'
+  | 'solver'
+  | 'explanation'
+  | 'set'
+  | 'combinatorics'
+  | 'probability'
 export type NotebookViewMode = 'preview' | 'edit'
 
 export type Block = {
@@ -29,6 +37,9 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   graph: 'Graph',
   solver: 'Solver',
   explanation: 'Explanation',
+  set: 'Set',
+  combinatorics: 'Combinatorics',
+  probability: 'Probability',
 }
 
 export const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
@@ -37,4 +48,7 @@ export const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
   graph: 'Plot functions, point sets, and parametric curves.',
   solver: 'Enter an equation to solve in steps.',
   explanation: 'Ask for a concept explanation.',
+  set: 'Compare two finite sets.',
+  combinatorics: 'Count arrangements and choices.',
+  probability: 'Turn outcomes into probability.',
 }

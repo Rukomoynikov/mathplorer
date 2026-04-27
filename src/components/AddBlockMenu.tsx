@@ -6,7 +6,16 @@ import {
   type BlockType,
 } from '../types'
 
-const BLOCK_TYPES: BlockType[] = ['text', 'formula', 'graph', 'solver', 'explanation']
+const BLOCK_TYPES: BlockType[] = [
+  'text',
+  'formula',
+  'graph',
+  'solver',
+  'explanation',
+  'set',
+  'combinatorics',
+  'probability',
+]
 
 type AddBlockMenuProps = {
   onAddBlock: (type: BlockType) => void
@@ -19,7 +28,7 @@ export default function AddBlockMenu({ onAddBlock }: AddBlockMenuProps) {
         <Plus size={13} aria-hidden="true" className="text-teal-700" />
         Add a block
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {BLOCK_TYPES.map((type) => {
           const meta = BLOCK_META[type]
           const Icon = meta.icon

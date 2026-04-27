@@ -15,7 +15,10 @@ import Notebook from './components/Notebook'
 import NotebookTitleControl from './components/NotebookTitleControl'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import { createBlock } from './data/blockFactory'
-import { createSampleNotebook } from './data/sampleNotebook'
+import {
+  createSampleNotebook,
+  SAMPLE_NOTEBOOK_TITLE,
+} from './data/sampleNotebook'
 import {
   formulaToGraphContent,
   normalizeFormulaContent,
@@ -626,7 +629,7 @@ function App() {
   }
 
   function handleCreateSampleNotebook() {
-    const notebook = createNotebook('Quadratic exploration', createSampleNotebook())
+    const notebook = createNotebook(SAMPLE_NOTEBOOK_TITLE, createSampleNotebook())
 
     setWorkspace((currentWorkspace) => ({
       ...currentWorkspace,

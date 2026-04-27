@@ -61,7 +61,10 @@ function isBlockType(value: unknown): value is BlockType {
     value === 'formula' ||
     value === 'graph' ||
     value === 'solver' ||
-    value === 'explanation'
+    value === 'explanation' ||
+    value === 'set' ||
+    value === 'combinatorics' ||
+    value === 'probability'
   )
 }
 

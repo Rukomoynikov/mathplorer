@@ -26,7 +26,8 @@ function ExplanationOutput({
 
     return (
       <p className="mt-3 rounded-md bg-amber-50 px-3 py-3 text-sm leading-6 text-amber-950">
-        Ask a question about slope, quadratics, derivatives, graphs, or solving.
+        Ask a question about sets, counting, probability, slope, quadratics,
+        derivatives, graphs, or solving.
         A focused local explanation will appear here.
       </p>
     )
