@@ -10,6 +10,7 @@ const BLOCK_TYPES: BlockType[] = [
   'text',
   'formula',
   'graph',
+  'geometry',
   'solver',
   'explanation',
   'set',

@@ -25,6 +25,7 @@ describe('notebookSerialization', () => {
         createStoredBlock('set'),
         createStoredBlock('combinatorics'),
         createStoredBlock('probability'),
+        createStoredBlock('geometry'),
       ],
       createdAt: 1,
       updatedAt: 1,
@@ -46,6 +47,7 @@ describe('notebookSerialization', () => {
         'set',
         'combinatorics',
         'probability',
+        'geometry',
       ])
     }
   })

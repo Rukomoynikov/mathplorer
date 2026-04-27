@@ -8,6 +8,10 @@ import {
   serializeProbabilityBlockContent,
 } from '../lib/probability'
 import {
+  DEFAULT_GEOMETRY_BLOCK_CONTENT,
+  serializeGeometryBlockContent,
+} from '../lib/geometry'
+import {
   DEFAULT_SET_BLOCK_CONTENT,
   serializeSetBlockContent,
 } from '../lib/setTheory'
@@ -16,6 +20,7 @@ const DEFAULT_BLOCK_CONTENT: Record<BlockType, string> = {
   text: '## Notes\n\nWrite **key ideas** here, and use inline math like $x^2 + 1$.',
   formula: 'f(x) = x^2 - 4x + 3',
   graph: 'y = x^2 - 4x + 3',
+  geometry: serializeGeometryBlockContent(DEFAULT_GEOMETRY_BLOCK_CONTENT),
   solver: '2x + 5 = 17',
   explanation: 'Explain why changing a in y = ax^2 changes the parabola.',
   set: serializeSetBlockContent(DEFAULT_SET_BLOCK_CONTENT),

@@ -1,6 +1,7 @@
 import { createBlock } from './blockFactory'
 import type { Block } from '../types'
 import { serializeCombinatoricsBlockContent } from '../lib/combinatorics'
+import { serializeGeometryBlockContent } from '../lib/geometry'
 import { serializeProbabilityBlockContent } from '../lib/probability'
 import { serializeSetBlockContent } from '../lib/setTheory'
 
@@ -19,6 +20,45 @@ This mini-lesson moves through three connected questions:
 - What belongs to a collection?
 - How many outcomes are possible?
 - How likely is a particular event?`,
+    ),
+    createBlock(
+      'text',
+      `### Coordinate Geometry
+
+The same notebook can hold diagrams too. Move the points in triangle $ABC$ and watch its side lengths, slopes, perimeter, and area update.`,
+    ),
+    createBlock(
+      'geometry',
+      serializeGeometryBlockContent({
+        version: 1,
+        showGrid: true,
+        snapToGrid: true,
+        objects: [
+          { id: 'sample-point-a', type: 'point', x: -3, y: -2, label: 'A' },
+          { id: 'sample-point-b', type: 'point', x: 4, y: -2, label: 'B' },
+          { id: 'sample-point-c', type: 'point', x: 1, y: 3, label: 'C' },
+          {
+            id: 'sample-segment-ab',
+            type: 'segment',
+            pointIds: ['sample-point-a', 'sample-point-b'],
+          },
+          {
+            id: 'sample-segment-bc',
+            type: 'segment',
+            pointIds: ['sample-point-b', 'sample-point-c'],
+          },
+          {
+            id: 'sample-segment-ca',
+            type: 'segment',
+            pointIds: ['sample-point-c', 'sample-point-a'],
+          },
+          {
+            id: 'sample-polygon-abc',
+            type: 'polygon',
+            pointIds: ['sample-point-a', 'sample-point-b', 'sample-point-c'],
+          },
+        ],
+      }),
     ),
     createBlock(
       'text',

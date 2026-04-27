@@ -60,6 +60,7 @@ function isBlockType(value: unknown): value is BlockType {
     value === 'text' ||
     value === 'formula' ||
     value === 'graph' ||
+    value === 'geometry' ||
     value === 'solver' ||
     value === 'explanation' ||
     value === 'set' ||

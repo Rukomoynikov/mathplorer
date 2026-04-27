@@ -2,6 +2,7 @@ export type BlockType =
   | 'text'
   | 'formula'
   | 'graph'
+  | 'geometry'
   | 'solver'
   | 'explanation'
   | 'set'
@@ -35,6 +36,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   text: 'Text',
   formula: 'Formula',
   graph: 'Graph',
+  geometry: 'Geometry',
   solver: 'Solver',
   explanation: 'Explanation',
   set: 'Set',
@@ -46,6 +48,7 @@ export const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
   text: 'Write notes and rough thinking.',
   formula: 'Capture a formula for later rendering.',
   graph: 'Plot functions, point sets, and parametric curves.',
+  geometry: 'Construct coordinate-plane diagrams.',
   solver: 'Enter an equation to solve in steps.',
   explanation: 'Ask for a concept explanation.',
   set: 'Compare two finite sets.',
