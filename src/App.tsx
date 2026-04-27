@@ -16,6 +16,11 @@ import NotebookTitleControl from './components/NotebookTitleControl'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import { createBlock } from './data/blockFactory'
 import {
+  COURSE_PACKS,
+  getCourseNotebookTemplate,
+  type CoursePackId,
+} from './data/coursePacks'
+import {
   createSampleNotebook,
   SAMPLE_NOTEBOOK_TITLE,
 } from './data/sampleNotebook'
@@ -642,6 +647,60 @@ function App() {
     })
   }
 
+  function handleCreateCourseNotebook(templateId: string) {
+    const template = getCourseNotebookTemplate(templateId)
+
+    if (!template) {
+      setNotice({
+        tone: 'error',
+        message: 'That example notebook could not be found.',
+      })
+      return
+    }
+
+    const notebook = createNotebook(template.title, template.createBlocks())
+
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      notebooks: [...currentWorkspace.notebooks, notebook],
+      currentNotebookId: notebook.id,
+    }))
+    setNotice({
+      tone: 'success',
+      message: `Loaded "${template.title}".`,
+    })
+  }
+
+  function handleCreateCoursePack(coursePackId: CoursePackId) {
+    const coursePack = COURSE_PACKS.find((pack) => pack.id === coursePackId)
+
+    if (!coursePack) {
+      setNotice({
+        tone: 'error',
+        message: 'That course pack could not be found.',
+      })
+      return
+    }
+
+    const notebooks = coursePack.notebooks.map((template) =>
+      createNotebook(template.title, template.createBlocks()),
+    )
+
+    if (notebooks.length === 0) {
+      return
+    }
+
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      notebooks: [...currentWorkspace.notebooks, ...notebooks],
+      currentNotebookId: notebooks[0].id,
+    }))
+    setNotice({
+      tone: 'success',
+      message: `${coursePack.title} added as ${notebooks.length} notebooks.`,
+    })
+  }
+
   function handleRenameNotebook(title: string) {
     updateCurrentNotebook((notebook) => renameNotebook(notebook, title))
   }
@@ -1104,8 +1163,11 @@ function App() {
         <WorkspaceSidebar
           notebooks={workspace.notebooks}
           currentNotebookId={workspace.currentNotebookId}
+          coursePacks={COURSE_PACKS}
           onCreateNotebook={handleCreateNotebook}
           onCreateSampleNotebook={handleCreateSampleNotebook}
+          onCreateCourseNotebook={handleCreateCourseNotebook}
+          onCreateCoursePack={handleCreateCoursePack}
           onSelectNotebook={handleSelectNotebook}
           onDuplicateNotebook={handleDuplicateNotebook}
           onDeleteNotebook={handleDeleteNotebook}
