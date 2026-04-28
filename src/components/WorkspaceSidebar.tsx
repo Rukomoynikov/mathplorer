@@ -3,11 +3,10 @@ import {
   Copy,
   Download,
   Files,
-  FolderOpen,
-  HardDrive,
   Library,
   NotebookPen,
   Plus,
+  Settings,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -17,6 +16,7 @@ import type { CoursePack, CoursePackId } from '../data/coursePacks'
 import type { Block, Notebook } from '../types'
 
 type WorkspaceSidebarProps = {
+  activeView: 'notebook' | 'settings'
   coursePacks: CoursePack[]
   currentNotebookId: string | null
   notebooks: Notebook[]
@@ -27,14 +27,10 @@ type WorkspaceSidebarProps = {
   onDeleteNotebook: (id: string) => void
   onDuplicateNotebook: (id: string) => void
   onExportNotebook: () => void
-  onExportWorkspace: () => void
   onImportNotebook: () => void
-  onImportWorkspace: () => void
-  onChangeStorageFolder: () => void
+  onOpenNotebook: () => void
+  onOpenSettings: () => void
   onSelectNotebook: (id: string) => void
-  storageFolderPath: string | null
-  storageStatusLabel: string
-  storageChangeDisabled?: boolean
 }
 
 type SidebarButtonProps = {
@@ -156,6 +152,7 @@ function NotebookTypeDots({ blocks }: { blocks: Block[] }) {
 }
 
 export default function WorkspaceSidebar({
+  activeView,
   coursePacks,
   currentNotebookId,
   notebooks,
@@ -166,14 +163,10 @@ export default function WorkspaceSidebar({
   onDeleteNotebook,
   onDuplicateNotebook,
   onExportNotebook,
-  onExportWorkspace,
   onImportNotebook,
-  onImportWorkspace,
-  onChangeStorageFolder,
+  onOpenNotebook,
+  onOpenSettings,
   onSelectNotebook,
-  storageFolderPath,
-  storageStatusLabel,
-  storageChangeDisabled = false,
 }: WorkspaceSidebarProps) {
   const defaultCourse = coursePacks[0] ?? null
   const [selectedCourseId, setSelectedCourseId] = useState<string>(
@@ -228,33 +221,34 @@ export default function WorkspaceSidebar({
       </header>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 lg:px-5">
-        <SidebarSection title="Storage">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white text-slate-600 ring-1 ring-slate-200">
-                <HardDrive size={15} aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900">
-                  Notebook folder
-                </p>
-                <p
-                  title={storageFolderPath ?? storageStatusLabel}
-                  className="mt-1 line-clamp-2 break-all text-xs leading-5 text-slate-600"
-                >
-                  {storageFolderPath ?? storageStatusLabel}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3">
-              <SidebarButton
-                onClick={onChangeStorageFolder}
-                disabled={storageChangeDisabled}
-              >
-                <FolderOpen size={14} aria-hidden="true" />
-                Change folder
-              </SidebarButton>
-            </div>
+        <SidebarSection title="App">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              aria-current={activeView === 'notebook' ? 'page' : undefined}
+              onClick={onOpenNotebook}
+              className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                activeView === 'notebook'
+                  ? 'border-teal-200 bg-teal-50 text-teal-950'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <NotebookPen size={14} aria-hidden="true" />
+              Notebook
+            </button>
+            <button
+              type="button"
+              aria-current={activeView === 'settings' ? 'page' : undefined}
+              onClick={onOpenSettings}
+              className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                activeView === 'settings'
+                  ? 'border-teal-200 bg-teal-50 text-teal-950'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <Settings size={14} aria-hidden="true" />
+              Settings
+            </button>
           </div>
         </SidebarSection>
 
@@ -284,7 +278,9 @@ export default function WorkspaceSidebar({
                     key={notebook.id}
                     type="button"
                     onClick={() => onSelectNotebook(notebook.id)}
-                    aria-current={isSelected ? 'page' : undefined}
+                    aria-current={
+                      isSelected && activeView === 'notebook' ? 'page' : undefined
+                    }
                     className={`group w-full rounded-lg border px-3 py-2.5 text-left transition ${
                       isSelected
                         ? 'border-teal-200 bg-teal-50 text-teal-950 shadow-[inset_3px_0_0_0_rgb(15_118_110)]'
@@ -407,7 +403,7 @@ export default function WorkspaceSidebar({
           </div>
         </SidebarSection>
 
-        <SidebarSection title="Import and export">
+        <SidebarSection title="Notebook files">
           <div className="grid gap-2">
             <SidebarButton onClick={onExportNotebook} disabled={!currentNotebook}>
               <Download size={14} aria-hidden="true" />
@@ -416,14 +412,6 @@ export default function WorkspaceSidebar({
             <SidebarButton onClick={onImportNotebook}>
               <Upload size={14} aria-hidden="true" />
               Import notebook
-            </SidebarButton>
-            <SidebarButton onClick={onExportWorkspace}>
-              <Files size={14} aria-hidden="true" />
-              Export workspace
-            </SidebarButton>
-            <SidebarButton onClick={onImportWorkspace}>
-              <FolderOpen size={14} aria-hidden="true" />
-              Import workspace
             </SidebarButton>
           </div>
         </SidebarSection>

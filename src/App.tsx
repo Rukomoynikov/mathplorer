@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import Notebook from './components/Notebook'
 import NotebookTitleControl from './components/NotebookTitleControl'
+import SettingsPage from './components/SettingsPage'
 import WorkspaceSidebar from './components/WorkspaceSidebar'
 import { createBlock } from './data/blockFactory'
 import {
@@ -78,6 +79,8 @@ type AppNotice = {
 type DerivedFormulaResult = {
   content: string
 }
+
+type AppView = 'notebook' | 'settings'
 
 type StorageState =
   | { status: 'browser' }
@@ -367,6 +370,7 @@ function StorageSetupOverlay({
 
 function App() {
   const [workspace, setWorkspace] = useState<NotebookWorkspace>(loadWorkspace)
+  const [appView, setAppView] = useState<AppView>('notebook')
   const [storageState, setStorageState] = useState<StorageState>(
     createInitialStorageState,
   )
@@ -612,6 +616,7 @@ function App() {
       ...currentWorkspace,
       currentNotebookId: id,
     }))
+    setAppView('notebook')
     setNotice(null)
   }
 
@@ -623,6 +628,7 @@ function App() {
       notebooks: [...currentWorkspace.notebooks, notebook],
       currentNotebookId: notebook.id,
     }))
+    setAppView('notebook')
     setNotice({
       tone: 'success',
       message: 'Notebook created.',
@@ -637,6 +643,7 @@ function App() {
       notebooks: [...currentWorkspace.notebooks, notebook],
       currentNotebookId: notebook.id,
     }))
+    setAppView('notebook')
     setNotice({
       tone: 'success',
       message: 'Sample notebook created.',
@@ -661,6 +668,7 @@ function App() {
       notebooks: [...currentWorkspace.notebooks, notebook],
       currentNotebookId: notebook.id,
     }))
+    setAppView('notebook')
     setNotice({
       tone: 'success',
       message: `Loaded "${template.title}".`,
@@ -691,6 +699,7 @@ function App() {
       notebooks: [...currentWorkspace.notebooks, ...notebooks],
       currentNotebookId: notebooks[0].id,
     }))
+    setAppView('notebook')
     setNotice({
       tone: 'success',
       message: `${coursePack.title} added as ${notebooks.length} notebooks.`,
@@ -773,6 +782,7 @@ function App() {
         currentNotebookId: copiedNotebook.id,
       }
     })
+    setAppView('notebook')
     setNotice({
       tone: 'success',
       message: 'Notebook duplicated.',
@@ -1087,6 +1097,7 @@ function App() {
         notebooks: [...currentWorkspace.notebooks, importedNotebook],
         currentNotebookId: importedNotebook.id,
       }))
+      setAppView('notebook')
       setNotice({
         tone: 'success',
         message: `Imported "${importedNotebook.title}" as a new notebook.`,
@@ -1124,6 +1135,7 @@ function App() {
       }
 
       setWorkspace(parsedWorkspace.workspace)
+      setAppView('notebook')
       setNotice({
         tone: 'success',
         message: 'Workspace imported.',
@@ -1157,6 +1169,7 @@ function App() {
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <div className="flex flex-col lg:flex-row">
         <WorkspaceSidebar
+          activeView={appView}
           notebooks={workspace.notebooks}
           currentNotebookId={workspace.currentNotebookId}
           coursePacks={COURSE_PACKS}
@@ -1169,16 +1182,23 @@ function App() {
           onDeleteNotebook={handleDeleteNotebook}
           onExportNotebook={handleExportNotebook}
           onImportNotebook={handleImportNotebookClick}
-          onExportWorkspace={handleExportWorkspace}
-          onImportWorkspace={handleImportWorkspaceClick}
-          onChangeStorageFolder={() => void handleChooseStorageFolder()}
-          storageFolderPath={storageFolderPath}
-          storageStatusLabel={storageStatusLabel}
-          storageChangeDisabled={storageChangeDisabled}
+          onOpenNotebook={() => setAppView('notebook')}
+          onOpenSettings={() => setAppView('settings')}
         />
 
         <div className="mx-auto flex min-w-0 flex-1 flex-col gap-5 px-4 py-4 sm:px-6 lg:max-w-6xl lg:px-8 lg:py-6">
-          {currentNotebook ? (
+          {appView === 'settings' ? (
+            <SettingsPage
+              blockCount={totalBlockCount}
+              notebookCount={workspace.notebooks.length}
+              onChangeStorageFolder={() => void handleChooseStorageFolder()}
+              onExportWorkspace={handleExportWorkspace}
+              onImportWorkspace={handleImportWorkspaceClick}
+              storageChangeDisabled={storageChangeDisabled}
+              storageFolderPath={storageFolderPath}
+              storageStatusLabel={storageStatusLabel}
+            />
+          ) : currentNotebook ? (
             <>
               <header className="mnl-panel px-4 py-4 sm:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
