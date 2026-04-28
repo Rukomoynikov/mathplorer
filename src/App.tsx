@@ -341,7 +341,7 @@ function StorageSetupOverlay({
             <FolderOpen size={24} aria-hidden="true" />
           )}
         </div>
-        <h2 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">
+        <h2 className="mt-5 text-xl font-semibold text-slate-950">
           {title}
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>

@@ -43,7 +43,7 @@ export default function NotebookTitleControl({
           event.currentTarget.blur()
         }
       }}
-      className="w-full rounded-lg border border-transparent bg-transparent px-0 py-1 text-3xl font-semibold tracking-tight text-slate-950 outline-none transition focus:border-teal-300 focus:bg-white focus:px-3 focus:ring-4 focus:ring-teal-100 sm:text-4xl"
+      className="w-full rounded-md border border-transparent bg-transparent px-0 py-1 text-2xl font-semibold text-slate-950 outline-none transition focus:border-teal-400 focus:bg-white focus:px-3 focus:ring-4 focus:ring-teal-100 sm:text-3xl"
     />
   )
 }

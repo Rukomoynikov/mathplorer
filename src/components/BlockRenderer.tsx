@@ -111,11 +111,11 @@ export default function BlockRenderer({
   )
 
   if (mode === 'preview') {
-    return <section>{blockContent}</section>
+    return <section className="min-w-0">{blockContent}</section>
   }
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.10)] transition hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-16px_rgba(15,23,42,0.16)]">
+    <article className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
       <span
         aria-hidden="true"
         className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${meta.accentBar}`}
@@ -132,7 +132,7 @@ export default function BlockRenderer({
         onMoveUp={() => onMoveBlock(block.id, 'up')}
       />
 
-      <div className="p-5">{blockContent}</div>
+      <div className="min-w-0 p-4 sm:p-5">{blockContent}</div>
     </article>
   )
 }

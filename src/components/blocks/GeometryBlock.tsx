@@ -170,7 +170,7 @@ function ToolButton({
       aria-pressed={isActive}
       onClick={() => onSelect(definition.tool)}
       title={definition.label}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition ${
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition ${
         isActive
           ? 'border-teal-200 bg-teal-50 text-teal-800 shadow-sm'
           : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
@@ -199,7 +199,7 @@ function ToggleButton({
       aria-pressed={active}
       onClick={onToggle}
       title={label}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition ${
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition ${
         active
           ? 'border-cyan-200 bg-cyan-50 text-cyan-800'
           : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
@@ -224,14 +224,14 @@ function MeasurementSection({
 
   return (
     <section>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <p className="text-[11px] font-semibold uppercase text-slate-500">
         {title}
       </p>
       <div className="mt-2 grid gap-2">
         {rows.map((row) => (
           <div
             key={row.id}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm"
+            className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm"
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm font-semibold text-slate-800">
@@ -334,7 +334,7 @@ function MeasurementsPanel({
     pointRows.length + segmentRows.length + circleRows.length + polygonRows.length > 0
 
   return (
-    <aside className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+    <aside className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-slate-900">Measurements</p>
         <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
@@ -350,7 +350,7 @@ function MeasurementsPanel({
           <MeasurementSection rows={polygonRows} title="Polygons" />
         </div>
       ) : (
-        <p className="mt-3 rounded-lg border border-dashed border-slate-200 bg-white px-3 py-6 text-center text-sm text-slate-500">
+        <p className="mt-3 rounded-md border border-dashed border-slate-200 bg-white px-3 py-6 text-center text-sm text-slate-500">
           No measurements yet.
         </p>
       )}
@@ -636,10 +636,10 @@ export default function GeometryBlock({
       ref={rootRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="rounded-xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100"
+      className="rounded-lg border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100"
     >
       {isEditing && (
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-3 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-3 py-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {TOOL_DEFINITIONS.map((definition) => (
               <ToolButton
@@ -669,7 +669,7 @@ export default function GeometryBlock({
       )}
 
       <div className="grid gap-4 p-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <figure className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <figure className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${GEOMETRY_SVG_SIZE} ${GEOMETRY_SVG_SIZE}`}

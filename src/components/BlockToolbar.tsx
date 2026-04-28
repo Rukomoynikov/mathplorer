@@ -42,7 +42,7 @@ function ToolbarIconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent ${toneClasses}`}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent ${toneClasses}`}
     >
       {children}
     </button>
@@ -65,10 +65,10 @@ export default function BlockToolbar({
   const Icon = meta.icon
 
   return (
-    <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-b from-white to-slate-50/60 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         <span
-          className={`flex h-8 w-8 items-center justify-center rounded-lg ${meta.iconBg} ${meta.iconColor} ring-1 ${meta.ringColor}`}
+          className={`flex h-8 w-8 items-center justify-center rounded-md ${meta.iconBg} ${meta.iconColor} ring-1 ${meta.ringColor}`}
         >
           <Icon size={15} aria-hidden="true" />
         </span>
@@ -77,7 +77,7 @@ export default function BlockToolbar({
             <p className="text-sm font-semibold text-slate-900">
               {BLOCK_TYPE_LABELS[block.type]}
             </p>
-            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500 ring-1 ring-slate-200">
               #{blockNumber}
             </span>
           </div>
@@ -92,7 +92,7 @@ export default function BlockToolbar({
       </div>
 
       {isEditing && (
-        <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white/70 p-1 shadow-sm">
+        <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm">
           <ToolbarIconButton
             label="Move block up"
             onClick={onMoveUp}

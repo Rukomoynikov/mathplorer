@@ -42,13 +42,13 @@ function CombinatoricsPreview({
   return (
     <div className="space-y-4">
       {mode === 'edit' && (
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <p className="text-[11px] font-semibold uppercase text-slate-500">
           Count preview
         </p>
       )}
 
       {!result.ok ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm font-semibold text-amber-950">
             Cannot count yet
           </p>
@@ -57,10 +57,10 @@ function CombinatoricsPreview({
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
+        <div className="rounded-lg border border-fuchsia-100 bg-fuchsia-50/50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-fuchsia-700">
+              <p className="text-[11px] font-semibold uppercase text-fuchsia-700">
                 {getCombinatoricsModeLabel(result.mode)}
               </p>
               <p className="mt-1 font-mono text-sm text-slate-700">
@@ -68,7 +68,7 @@ function CombinatoricsPreview({
               </p>
             </div>
             <div className="rounded-lg bg-white px-3 py-2 text-right shadow-sm ring-1 ring-fuchsia-100">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <p className="text-[11px] font-semibold uppercase text-slate-500">
                 {result.resultLabel}
               </p>
               <p className="mt-1 max-w-full overflow-x-auto font-mono text-xl font-semibold text-slate-950">
@@ -83,7 +83,7 @@ function CombinatoricsPreview({
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-3">
           <p className="text-xs font-semibold text-slate-800">
             Arranging
           </p>
@@ -91,7 +91,7 @@ function CombinatoricsPreview({
             Permutations count ordered outcomes.
           </p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-3">
           <p className="text-xs font-semibold text-slate-800">Choosing</p>
           <p className="mt-1 text-xs leading-5 text-slate-600">
             Combinations count groups where order is ignored.
@@ -156,7 +156,7 @@ export default function CombinatoricsBlock({
 
         <div className={needsR ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'}>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-semibold uppercase text-slate-500">
               n
             </span>
             <input
@@ -164,13 +164,13 @@ export default function CombinatoricsBlock({
               onChange={(event) => handleContentChange({ n: event.target.value })}
               inputMode="numeric"
               placeholder="5"
-              className="min-h-10 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-slate-900 shadow-sm transition focus:border-fuchsia-300 focus:outline-none focus:ring-4 focus:ring-fuchsia-100"
+              className="mnl-field font-mono focus:border-fuchsia-400 focus:ring-fuchsia-100"
             />
           </label>
 
           {needsR && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-semibold uppercase text-slate-500">
                 r
               </span>
               <input
@@ -180,7 +180,7 @@ export default function CombinatoricsBlock({
                 }
                 inputMode="numeric"
                 placeholder="2"
-                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-slate-900 shadow-sm transition focus:border-fuchsia-300 focus:outline-none focus:ring-4 focus:ring-fuchsia-100"
+                className="mnl-field font-mono focus:border-fuchsia-400 focus:ring-fuchsia-100"
               />
             </label>
           )}

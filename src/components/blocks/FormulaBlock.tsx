@@ -101,7 +101,7 @@ function FormulaInlineInput({
 }: FormulaInlineInputProps) {
   return (
     <label htmlFor={id} className="flex min-w-0 flex-col gap-1">
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-500">
         {Icon && <Icon size={12} aria-hidden="true" />}
         {label}
       </span>
@@ -110,7 +110,7 @@ function FormulaInlineInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-h-8 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs leading-5 text-slate-900 shadow-sm transition focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+        className="min-h-8 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs leading-5 text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-100"
       />
     </label>
   )
@@ -125,7 +125,7 @@ type FormulaSectionProps = {
 function FormulaSection({ children, icon: Icon, title }: FormulaSectionProps) {
   return (
     <section className="space-y-2 border-t border-slate-200 pt-3">
-      <h4 className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <h4 className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-500">
         <Icon size={12} aria-hidden="true" />
         {title}
       </h4>
@@ -197,12 +197,12 @@ function FormulaPreview({ content, mode }: FormulaPreviewProps) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+      <p className="text-[10px] font-semibold uppercase text-slate-500">
         Formula preview
       </p>
       <div
         aria-live="polite"
-        className={`min-h-24 overflow-x-auto rounded-lg border px-3.5 py-4 text-slate-900 ${
+        className={`min-h-24 overflow-x-auto rounded-md border px-3.5 py-4 text-slate-900 ${
           hasError
             ? 'border-amber-200 bg-amber-50/60'
             : 'border-slate-200 bg-slate-50/70'
@@ -312,7 +312,7 @@ function CalculusTools({
 
   return (
     <FormulaSection icon={Diff} title="Calculus">
-      <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <div className="rounded-md border border-slate-200 bg-white p-3">
         <div className="min-h-16 overflow-x-auto rounded-md bg-slate-50 px-3 py-2.5">
           {derivativePreviewMath ? (
             <div className="text-center text-sm text-slate-900">
@@ -421,7 +421,7 @@ function SubstitutionTool({
     <FormulaSection icon={Replace} title="Substitute">
       <form
         onSubmit={onSubmit}
-        className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+        className="grid gap-2 rounded-md border border-slate-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
       >
         <FormulaInlineInput
           id={inputId}
@@ -612,7 +612,7 @@ export default function FormulaBlock({
         onChange={(event) => onChange(event.target.value)}
         rows={4}
         placeholder="f(x) = x^2 - 4x + 3"
-        className="min-h-28 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+        className="mnl-textarea min-h-28 font-mono focus:border-indigo-400 focus:ring-indigo-100"
       />
     </BlockEditorShell>
   )

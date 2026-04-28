@@ -223,7 +223,7 @@ function GraphAnalysisPanel({ analysis }: { analysis: PlotAnalysis }) {
 
   return (
     <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <p className="text-[11px] font-semibold uppercase text-slate-500">
         Approximate analysis
       </p>
       <div className="mt-2 grid gap-3 md:grid-cols-2">
@@ -462,7 +462,7 @@ function ViewportEditor({
     <div className="grid gap-2 border-t border-slate-100 bg-slate-50/70 px-3 py-3 sm:grid-cols-4">
       {VIEWPORT_KEYS.map((key) => (
         <label key={key} className="flex min-w-0 flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] font-semibold uppercase text-slate-500">
             {VIEWPORT_LABELS[key]}
           </span>
           <input
@@ -921,7 +921,7 @@ export default function GraphBlock({ content, mode, onChange }: GraphBlockProps)
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-[11px] font-semibold uppercase text-slate-500">
               Graph preview
             </p>
           )}
@@ -941,7 +941,7 @@ export default function GraphBlock({ content, mode, onChange }: GraphBlockProps)
         onChange={(event) => onChange(event.target.value)}
         rows={5}
         placeholder="y = x^2 - 4*x + 3"
-        className="min-h-32 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm leading-6 text-slate-900 shadow-sm transition focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+        className="mnl-textarea min-h-32 font-mono focus:border-emerald-400 focus:ring-emerald-100"
       />
     </BlockEditorShell>
   )

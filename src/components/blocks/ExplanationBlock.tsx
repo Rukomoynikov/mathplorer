@@ -25,7 +25,7 @@ function ExplanationOutput({
     }
 
     return (
-      <p className="mt-3 rounded-md bg-amber-50 px-3 py-3 text-sm leading-6 text-amber-950">
+      <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm leading-6 text-amber-950">
         Ask a question about sets, counting, probability, slope, quadratics,
         derivatives, graphs, or solving.
         A focused local explanation will appear here.
@@ -61,9 +61,9 @@ function ExplanationOutput({
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-violet-100 bg-violet-50/50 p-4">
+    <div className="mt-3 rounded-md border border-violet-100 bg-violet-50/50 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-700">
+        <p className="text-[11px] font-semibold uppercase text-violet-700">
           Local MVP explanation
         </p>
         <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-violet-700 ring-1 ring-violet-200">
@@ -81,8 +81,8 @@ function ExplanationOutput({
         ))}
       </div>
       {explanation.examples && explanation.examples.length > 0 && (
-        <div className="mt-4 rounded-md bg-white p-3">
-          <p className="text-xs font-semibold uppercase text-slate-400">
+        <div className="mt-4 rounded-md border border-violet-100 bg-white p-3">
+          <p className="text-xs font-semibold uppercase text-slate-500">
             Examples
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
@@ -132,7 +132,7 @@ export default function ExplanationBlock({
       output={
         <div>
           {mode === 'edit' && (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-[11px] font-semibold uppercase text-slate-500">
               Explanation
             </p>
           )}
@@ -145,13 +145,13 @@ export default function ExplanationBlock({
         onChange={(event) => handleContentChange(event.target.value)}
         rows={5}
         placeholder="Explain why changing a in y = ax^2 changes the parabola."
-        className="min-h-32 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm leading-6 text-slate-900 shadow-sm transition focus:border-violet-400 focus:outline-none focus:ring-4 focus:ring-violet-100"
+        className="mnl-textarea min-h-32 focus:border-violet-400 focus:ring-violet-100"
       />
       <button
         type="button"
         onClick={handleGenerateExplanation}
         disabled={!canGenerate}
-        className="self-start rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+        className="inline-flex min-h-9 items-center justify-center self-start rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
       >
         Generate explanation
       </button>

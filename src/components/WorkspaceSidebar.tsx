@@ -4,9 +4,10 @@ import {
   Download,
   Files,
   FolderOpen,
+  HardDrive,
+  Library,
   NotebookPen,
   Plus,
-  Settings,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -51,20 +52,76 @@ function SidebarButton({
 }: SidebarButtonProps) {
   const toneClasses =
     tone === 'danger'
-      ? 'border border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300'
+      ? 'border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50'
       : tone === 'primary'
-        ? 'border border-transparent bg-teal-700 text-white shadow-sm hover:bg-teal-800'
-        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+        ? 'border-teal-700 bg-teal-700 text-white shadow-sm hover:border-teal-800 hover:bg-teal-800'
+        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-white ${toneClasses}`}
+      className={`inline-flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${toneClasses}`}
     >
       {children}
     </button>
+  )
+}
+
+function SidebarSection({
+  children,
+  count,
+  title,
+}: {
+  children: ReactNode
+  count?: number
+  title: string
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase text-slate-500">
+          {title}
+        </p>
+        {typeof count === 'number' && (
+          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+            {count}
+          </span>
+        )}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function SidebarSelect({
+  children,
+  disabled = false,
+  label,
+  onChange,
+  value,
+}: {
+  children: ReactNode
+  disabled?: boolean
+  label: string
+  onChange: (value: string) => void
+  value: string
+}) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-[11px] font-semibold uppercase text-slate-500">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-sm transition focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+      >
+        {children}
+      </select>
+    </label>
   )
 }
 
@@ -82,9 +139,7 @@ function NotebookTypeDots({ blocks }: { blocks: Block[] }) {
   )
 
   if (uniqueTypes.length === 0) {
-    return (
-      <span className="text-[11px] font-medium text-slate-400">empty</span>
-    )
+    return <span className="text-[11px] font-medium text-slate-400">empty</span>
   }
 
   return (
@@ -154,258 +209,224 @@ export default function WorkspaceSidebar({
   }
 
   return (
-    <aside className="flex flex-col gap-5 border-b border-slate-200/70 bg-white/85 px-4 py-5 backdrop-blur lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:w-72 lg:flex-none lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200/70 lg:px-5 lg:py-6 lg:shadow-[1px_0_0_rgba(15,23,42,0.02)]">
-      <div className="flex items-center gap-3">
+    <aside className="flex max-h-[72vh] flex-col border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:w-80 lg:flex-none lg:border-b-0 lg:border-r">
+      <header className="flex items-center gap-3 border-b border-slate-200 px-4 py-4 lg:px-5">
         <span
           aria-hidden="true"
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-700 text-white shadow-sm ring-1 ring-teal-700/20"
+          className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white shadow-sm"
         >
           <NotebookPen size={18} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-700">
+          <p className="text-[11px] font-semibold uppercase text-teal-700">
             Math Notebook Lab
           </p>
-          <h1 className="text-base font-semibold text-slate-900">Workspace</h1>
+          <h1 className="truncate text-base font-semibold text-slate-950">
+            Workspace
+          </h1>
         </div>
-      </div>
+      </header>
 
-      <div className="rounded-xl border border-slate-200/80 bg-white/70 p-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"
-          >
-            <Settings size={15} aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Settings
-            </p>
-            <p className="text-sm font-semibold text-slate-900">Storage</p>
-          </div>
-        </div>
-        <p
-          title={storageFolderPath ?? storageStatusLabel}
-          className="mt-3 break-all rounded-lg bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600"
-        >
-          {storageFolderPath ?? storageStatusLabel}
-        </p>
-        <div className="mt-3">
-          <SidebarButton
-            onClick={onChangeStorageFolder}
-            disabled={storageChangeDisabled}
-          >
-            <FolderOpen size={14} aria-hidden="true" />
-            Change folder
-          </SidebarButton>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-baseline justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Notebooks
-          </p>
-          <span className="text-xs font-medium text-slate-400">
-            {notebooks.length}
-          </span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <SidebarButton onClick={onCreateNotebook} tone="primary">
-            <Plus size={14} aria-hidden="true" />
-            New
-          </SidebarButton>
-          <SidebarButton onClick={onCreateSampleNotebook}>
-            <BookOpen size={14} aria-hidden="true" />
-            Sample
-          </SidebarButton>
-        </div>
-      </div>
-
-      {coursePacks.length > 0 && (
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Course packs
-          </p>
-          <div className="mt-3 rounded-xl border border-slate-200/80 bg-white/70 p-3 shadow-sm">
+      <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 lg:px-5">
+        <SidebarSection title="Storage">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-start gap-2">
-              <span
-                aria-hidden="true"
-                className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100"
-              >
-                <BookOpen size={15} aria-hidden="true" />
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white text-slate-600 ring-1 ring-slate-200">
+                <HardDrive size={15} aria-hidden="true" />
               </span>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-900">
-                  {selectedCourse?.title ?? 'Examples'}
+                  Notebook folder
                 </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  {selectedCourse?.description ??
-                    'Load a built-in lesson as a local notebook.'}
+                <p
+                  title={storageFolderPath ?? storageStatusLabel}
+                  className="mt-1 line-clamp-2 break-all text-xs leading-5 text-slate-600"
+                >
+                  {storageFolderPath ?? storageStatusLabel}
                 </p>
               </div>
             </div>
+            <div className="mt-3">
+              <SidebarButton
+                onClick={onChangeStorageFolder}
+                disabled={storageChangeDisabled}
+              >
+                <FolderOpen size={14} aria-hidden="true" />
+                Change folder
+              </SidebarButton>
+            </div>
+          </div>
+        </SidebarSection>
 
-            <div className="mt-3 space-y-2">
-              <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Course
+        <SidebarSection title="Notebooks" count={notebooks.length}>
+          <div className="grid grid-cols-2 gap-2">
+            <SidebarButton onClick={onCreateNotebook} tone="primary">
+              <Plus size={14} aria-hidden="true" />
+              New
+            </SidebarButton>
+            <SidebarButton onClick={onCreateSampleNotebook}>
+              <BookOpen size={14} aria-hidden="true" />
+              Sample
+            </SidebarButton>
+          </div>
+
+          <nav className="space-y-1.5" aria-label="Notebooks">
+            {notebooks.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-6 text-center text-sm leading-6 text-slate-500">
+                No notebooks yet.
+              </p>
+            ) : (
+              notebooks.map((notebook) => {
+                const isSelected = notebook.id === currentNotebookId
+
+                return (
+                  <button
+                    key={notebook.id}
+                    type="button"
+                    onClick={() => onSelectNotebook(notebook.id)}
+                    aria-current={isSelected ? 'page' : undefined}
+                    className={`group w-full rounded-lg border px-3 py-2.5 text-left transition ${
+                      isSelected
+                        ? 'border-teal-200 bg-teal-50 text-teal-950 shadow-[inset_3px_0_0_0_rgb(15_118_110)]'
+                        : 'border-transparent bg-white text-slate-800 hover:border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="block truncate text-sm font-semibold">
+                      {notebook.title}
+                    </span>
+                    <div className="mt-1 flex min-w-0 items-center gap-2">
+                      <span className="shrink-0 text-[11px] font-medium text-slate-500">
+                        {notebook.blocks.length}{' '}
+                        {notebook.blocks.length === 1 ? 'block' : 'blocks'}
+                      </span>
+                      <span className="text-[11px] text-slate-300">/</span>
+                      <span className="truncate text-[11px] font-medium text-slate-500">
+                        {formatUpdatedAt(notebook.updatedAt)}
+                      </span>
+                      <span className="ml-auto shrink-0">
+                        <NotebookTypeDots blocks={notebook.blocks} />
+                      </span>
+                    </div>
+                  </button>
+                )
+              })
+            )}
+          </nav>
+        </SidebarSection>
+
+        {coursePacks.length > 0 && (
+          <SidebarSection title="Course packs">
+            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                  <Library size={15} aria-hidden="true" />
                 </span>
-                <select
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    {selectedCourse?.title ?? 'Examples'}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {selectedCourse?.description ??
+                      'Load a built-in lesson as a local notebook.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <SidebarSelect
+                  label="Course"
                   value={selectedCourse?.id ?? ''}
-                  onChange={(event) => handleCourseChange(event.target.value)}
-                  className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-sm transition focus:border-teal-300 focus:outline-none focus:ring-4 focus:ring-teal-100"
+                  onChange={handleCourseChange}
                 >
                   {coursePacks.map((coursePack) => (
                     <option key={coursePack.id} value={coursePack.id}>
                       {coursePack.title}
                     </option>
                   ))}
-                </select>
-              </label>
+                </SidebarSelect>
 
-              <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Lesson
-                </span>
-                <select
+                <SidebarSelect
+                  label="Lesson"
                   value={selectedNotebook?.id ?? ''}
-                  onChange={(event) => setSelectedNotebookId(event.target.value)}
+                  onChange={setSelectedNotebookId}
                   disabled={!selectedCourse}
-                  className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-sm transition focus:border-teal-300 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   {selectedCourse?.notebooks.map((notebook) => (
                     <option key={notebook.id} value={notebook.id}>
                       {notebook.title.replace(`${selectedCourse.title}: `, '')}
                     </option>
                   ))}
-                </select>
-              </label>
-            </div>
+                </SidebarSelect>
+              </div>
 
-            {selectedNotebook && (
-              <p className="mt-3 rounded-lg bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600">
-                {selectedNotebook.summary}
-              </p>
-            )}
+              {selectedNotebook && (
+                <p className="mt-3 rounded-md bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600">
+                  {selectedNotebook.summary}
+                </p>
+              )}
 
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <SidebarButton
-                onClick={() =>
-                  selectedNotebook && onCreateCourseNotebook(selectedNotebook.id)
-                }
-                disabled={!selectedNotebook}
-              >
-                <BookOpen size={14} aria-hidden="true" />
-                Lesson
-              </SidebarButton>
-              <SidebarButton
-                onClick={() => selectedCourse && onCreateCoursePack(selectedCourse.id)}
-                disabled={!selectedCourse}
-              >
-                <Files size={14} aria-hidden="true" />
-                Full pack
-              </SidebarButton>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <nav className="flex flex-col gap-1.5" aria-label="Notebooks">
-        {notebooks.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-slate-300 bg-white/60 px-3 py-6 text-center text-sm leading-6 text-slate-500">
-            No notebooks yet.
-            <br />
-            Create one to begin.
-          </p>
-        ) : (
-          notebooks.map((notebook) => {
-            const isSelected = notebook.id === currentNotebookId
-
-            return (
-              <button
-                key={notebook.id}
-                type="button"
-                onClick={() => onSelectNotebook(notebook.id)}
-                aria-current={isSelected ? 'page' : undefined}
-                className={`group relative rounded-lg border px-3 py-2.5 text-left transition ${
-                  isSelected
-                    ? 'border-teal-200 bg-teal-50/80 shadow-[inset_2px_0_0_0_rgb(13_148_136)]'
-                    : 'border-transparent bg-white/60 hover:border-slate-200 hover:bg-white'
-                }`}
-              >
-                <span
-                  className={`block truncate text-sm font-semibold ${
-                    isSelected ? 'text-teal-950' : 'text-slate-800'
-                  }`}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <SidebarButton
+                  onClick={() =>
+                    selectedNotebook && onCreateCourseNotebook(selectedNotebook.id)
+                  }
+                  disabled={!selectedNotebook}
                 >
-                  {notebook.title}
-                </span>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-[11px] font-medium text-slate-500">
-                    {notebook.blocks.length}{' '}
-                    {notebook.blocks.length === 1 ? 'block' : 'blocks'}
-                  </span>
-                  <span className="text-[11px] text-slate-300">·</span>
-                  <span className="text-[11px] font-medium text-slate-500">
-                    {formatUpdatedAt(notebook.updatedAt)}
-                  </span>
-                  <span className="ml-auto">
-                    <NotebookTypeDots blocks={notebook.blocks} />
-                  </span>
-                </div>
-              </button>
-            )
-          })
+                  <BookOpen size={14} aria-hidden="true" />
+                  Lesson
+                </SidebarButton>
+                <SidebarButton
+                  onClick={() => selectedCourse && onCreateCoursePack(selectedCourse.id)}
+                  disabled={!selectedCourse}
+                >
+                  <Files size={14} aria-hidden="true" />
+                  Full pack
+                </SidebarButton>
+              </div>
+            </div>
+          </SidebarSection>
         )}
-      </nav>
 
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          Notebook actions
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <SidebarButton
-            onClick={() => currentNotebook && onDuplicateNotebook(currentNotebook.id)}
-            disabled={!currentNotebook}
-          >
-            <Copy size={14} aria-hidden="true" />
-            Duplicate
-          </SidebarButton>
-          <SidebarButton
-            onClick={() => currentNotebook && onDeleteNotebook(currentNotebook.id)}
-            disabled={!currentNotebook}
-            tone="danger"
-          >
-            <Trash2 size={14} aria-hidden="true" />
-            Delete
-          </SidebarButton>
-        </div>
-      </div>
+        <SidebarSection title="Notebook actions">
+          <div className="grid grid-cols-2 gap-2">
+            <SidebarButton
+              onClick={() => currentNotebook && onDuplicateNotebook(currentNotebook.id)}
+              disabled={!currentNotebook}
+            >
+              <Copy size={14} aria-hidden="true" />
+              Duplicate
+            </SidebarButton>
+            <SidebarButton
+              onClick={() => currentNotebook && onDeleteNotebook(currentNotebook.id)}
+              disabled={!currentNotebook}
+              tone="danger"
+            >
+              <Trash2 size={14} aria-hidden="true" />
+              Delete
+            </SidebarButton>
+          </div>
+        </SidebarSection>
 
-      <div className="border-t border-slate-200/70 pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          Import &amp; export
-        </p>
-        <div className="mt-3 grid grid-cols-1 gap-2">
-          <SidebarButton onClick={onExportNotebook} disabled={!currentNotebook}>
-            <Download size={14} aria-hidden="true" />
-            Export notebook
-          </SidebarButton>
-          <SidebarButton onClick={onImportNotebook}>
-            <Upload size={14} aria-hidden="true" />
-            Import notebook
-          </SidebarButton>
-          <SidebarButton onClick={onExportWorkspace}>
-            <Files size={14} aria-hidden="true" />
-            Export workspace
-          </SidebarButton>
-          <SidebarButton onClick={onImportWorkspace}>
-            <FolderOpen size={14} aria-hidden="true" />
-            Import workspace
-          </SidebarButton>
-        </div>
+        <SidebarSection title="Import and export">
+          <div className="grid gap-2">
+            <SidebarButton onClick={onExportNotebook} disabled={!currentNotebook}>
+              <Download size={14} aria-hidden="true" />
+              Export notebook
+            </SidebarButton>
+            <SidebarButton onClick={onImportNotebook}>
+              <Upload size={14} aria-hidden="true" />
+              Import notebook
+            </SidebarButton>
+            <SidebarButton onClick={onExportWorkspace}>
+              <Files size={14} aria-hidden="true" />
+              Export workspace
+            </SidebarButton>
+            <SidebarButton onClick={onImportWorkspace}>
+              <FolderOpen size={14} aria-hidden="true" />
+              Import workspace
+            </SidebarButton>
+          </div>
+        </SidebarSection>
       </div>
     </aside>
   )
