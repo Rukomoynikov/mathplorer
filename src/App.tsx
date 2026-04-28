@@ -120,7 +120,7 @@ function NotebookViewModeToggle({
   return (
     <div
       aria-label="Notebook view mode"
-      className="inline-flex rounded-full border border-slate-200 bg-white/80 p-1 shadow-sm backdrop-blur"
+      className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1"
       role="group"
     >
       {options.map(({ icon: Icon, label, value }) => {
@@ -132,10 +132,10 @@ function NotebookViewModeToggle({
             type="button"
             aria-pressed={isSelected}
             onClick={() => onModeChange(value)}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
+            className={`inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition ${
               isSelected
-                ? 'bg-gradient-to-br from-teal-600 to-cyan-700 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-white text-slate-950 shadow-sm ring-1 ring-slate-200'
+                : 'text-slate-600 hover:bg-white/70 hover:text-slate-950'
             }`}
           >
             <Icon size={15} aria-hidden="true" />
@@ -165,15 +165,15 @@ function NoticeToast({ notice, onDismiss }: NoticeToastProps) {
     <div
       aria-live="polite"
       role="status"
-      className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:bottom-8 sm:right-8 sm:left-auto sm:justify-end sm:px-0"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:justify-end sm:px-0"
     >
       <div
-        className={`animate-fade-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-white/95 px-4 py-3 text-sm shadow-[0_8px_28px_-8px_rgba(15,23,42,0.25)] backdrop-blur ${
+        className={`animate-fade-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-white px-4 py-3 text-sm shadow-lg ${
           isError ? 'border-rose-200' : 'border-slate-200'
         }`}
       >
         <span
-          className={`flex h-8 w-8 flex-none items-center justify-center rounded-full ${
+          className={`flex h-8 w-8 flex-none items-center justify-center rounded-md ${
             isError ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-600'
           }`}
         >
@@ -189,7 +189,7 @@ function NoticeToast({ notice, onDismiss }: NoticeToastProps) {
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss notice"
-          className="-mr-1 -mt-1 flex h-7 w-7 flex-none items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          className="mnl-icon-button -mr-1 -mt-1 h-7 w-7 border-0"
         >
           <X size={14} aria-hidden="true" />
         </button>
@@ -263,19 +263,15 @@ function NoNotebookState({
   onImportNotebook,
 }: NoNotebookStateProps) {
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 px-6 py-16 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-24px_rgba(15,23,42,0.18)] backdrop-blur">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-24 h-48 bg-gradient-to-b from-teal-100/60 via-cyan-50/40 to-transparent blur-2xl"
-      />
-      <div className="relative">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-700 text-2xl font-semibold text-white shadow-md ring-1 ring-teal-700/30">
+    <section className="mnl-panel px-6 py-14 text-center">
+      <div className="mx-auto max-w-xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-teal-700 text-2xl font-semibold text-white shadow-sm">
           ∑
         </div>
-        <p className="mt-6 text-2xl font-semibold tracking-tight text-slate-950">
+        <p className="mt-6 text-2xl font-semibold text-slate-950">
           Start a workspace notebook
         </p>
-        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
+        <p className="mt-2 text-sm leading-6 text-slate-600">
           Create a blank notebook, start from a sample, or import a notebook JSON
           file. Everything is saved locally on this device.
         </p>
@@ -283,7 +279,7 @@ function NoNotebookState({
           <button
             type="button"
             onClick={onCreateNotebook}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-teal-600 to-cyan-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-teal-700 hover:to-cyan-800"
+            className="mnl-button-primary"
           >
             <Plus size={16} aria-hidden="true" />
             New notebook
@@ -291,7 +287,7 @@ function NoNotebookState({
           <button
             type="button"
             onClick={onCreateSampleNotebook}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            className="mnl-button-secondary"
           >
             <BookOpen size={16} aria-hidden="true" />
             Create sample
@@ -299,7 +295,7 @@ function NoNotebookState({
           <button
             type="button"
             onClick={onImportNotebook}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            className="mnl-button-secondary"
           >
             <Upload size={16} aria-hidden="true" />
             Import notebook
@@ -330,10 +326,10 @@ function StorageSetupOverlay({
       : 'Pick the folder where Math Notebook Lab should save its workspace file.'
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-[0_24px_80px_-32px_rgba(15,23,42,0.5)]">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-sm">
+      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-xl">
         <div
-          className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl ${
+          className={`mx-auto flex h-12 w-12 items-center justify-center rounded-lg ${
             isError ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-700'
           }`}
         >
@@ -354,7 +350,7 @@ function StorageSetupOverlay({
             type="button"
             onClick={onChooseFolder}
             disabled={isChoosing}
-            className="mt-6 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-wait disabled:opacity-70"
+            className="mnl-button-primary mt-6 disabled:cursor-wait"
           >
             {isChoosing ? (
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
@@ -1158,7 +1154,7 @@ function App() {
     storageState.status === 'error'
 
   return (
-    <main className="min-h-screen text-slate-900">
+    <main className="min-h-screen bg-slate-100 text-slate-900">
       <div className="flex flex-col lg:flex-row">
         <WorkspaceSidebar
           notebooks={workspace.notebooks}
@@ -1181,13 +1177,13 @@ function App() {
           storageChangeDisabled={storageChangeDisabled}
         />
 
-        <div className="mx-auto flex min-w-0 max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        <div className="mx-auto flex min-w-0 flex-1 flex-col gap-5 px-4 py-4 sm:px-6 lg:max-w-6xl lg:px-8 lg:py-6">
           {currentNotebook ? (
             <>
-              <header className="rounded-2xl border border-slate-200/70 bg-white/70 px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.16)] backdrop-blur sm:px-6 sm:py-6">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <header className="mnl-panel px-4 py-4 sm:px-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-teal-700">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase text-teal-700">
                       <span
                         aria-hidden="true"
                         className="h-1.5 w-1.5 rounded-full bg-teal-500"
@@ -1202,22 +1198,22 @@ function App() {
                         />
                       </div>
                     ) : (
-                      <h1 className="mt-2 break-words text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                      <h1 className="mt-1 break-words text-2xl font-semibold text-slate-950 sm:text-3xl">
                         {currentNotebook.title}
                       </h1>
                     )}
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-600">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
                         {currentNotebook.blocks.length}{' '}
                         {currentNotebook.blocks.length === 1 ? 'block' : 'blocks'}
                       </span>
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                         {storageState.status === 'ready'
                           ? 'Saved to notebook folder'
                           : 'Saved locally'}
                       </span>
-                      <span className="text-slate-400">
+                      <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-slate-500">
                         Updated{' '}
                         {new Date(currentNotebook.updatedAt).toLocaleString([], {
                           dateStyle: 'medium',

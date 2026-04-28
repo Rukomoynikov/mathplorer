@@ -2,7 +2,7 @@
 
 :root {
   color: #0f172a;
-  background: #f6f8fc;
+  background: #f4f6fa;
   font-family:
     "Inter", "InterVariable", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -11,30 +11,14 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(
-      1100px 600px at 8% -10%,
-      rgba(45, 212, 191, 0.10) 0%,
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 500px at 100% 0%,
-      rgba(99, 102, 241, 0.08) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 600px at 100% 100%,
-      rgba(244, 114, 182, 0.06) 0%,
-      transparent 60%
-    ),
-    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   background-attachment: fixed;
 }
 
@@ -49,13 +33,18 @@ textarea {
   resize: vertical;
 }
 
+textarea::placeholder,
+input::placeholder {
+  color: #94a3b8;
+}
+
 ::selection {
-  background: rgba(20, 184, 166, 0.22);
+  background: rgba(20, 184, 166, 0.18);
   color: #0f172a;
 }
 
 *:focus-visible {
-  outline: 2px solid rgba(13, 148, 136, 0.55);
+  outline: 2px solid rgba(15, 118, 110, 0.55);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -93,4 +82,38 @@ textarea {
 
 .animate-fade-in {
   animation: mnl-fade-in 180ms ease-out;
+}
+
+@layer components {
+  .mnl-field {
+    @apply min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400;
+  }
+
+  .mnl-textarea {
+    @apply min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400;
+  }
+
+  .mnl-button {
+    @apply inline-flex min-h-9 min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .mnl-button-primary {
+    @apply inline-flex min-h-9 min-w-0 items-center justify-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:opacity-50;
+  }
+
+  .mnl-button-secondary {
+    @apply inline-flex min-h-9 min-w-0 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .mnl-button-danger {
+    @apply inline-flex min-h-9 min-w-0 items-center justify-center gap-2 rounded-md border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .mnl-icon-button {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent;
+  }
+
+  .mnl-panel {
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+  }
 }
