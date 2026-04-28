@@ -1,24 +1,29 @@
-# Math Notebook Lab
+# Agent Guide
 
-Math Notebook Lab is a local-first desktop app for student-friendly math exploration. It is built as a Tauri v2 app with a React, TypeScript, Vite, and Tailwind frontend.
+This repository contains one app: Math Notebook Lab, a local-first Tauri v2 desktop app with a React, TypeScript, Vite, and Tailwind frontend.
 
-## Product Scope
+## What This App Does
 
-- Notebook made of editable blocks: text, formula, graph, solver, and explanation.
-- Blocks can be added, edited, duplicated, deleted, and reordered.
-- Notebook state persists in browser `localStorage` inside the Tauri WebView.
-- Import/export uses plain JSON through browser upload/download APIs.
-- No backend is used. Keep the app local-first.
+Math Notebook Lab lets students build local math notebooks from blocks:
 
-## Architecture
+- `text`: Markdown notes with math support.
+- `formula`: KaTeX-rendered formulas.
+- `graph`: mathjs-backed function plotting with custom SVG output.
+- `solver`: simple linear equation solver.
+- `explanation`: deterministic local explanation generator.
 
-- `src/App.tsx` owns notebook state, localStorage persistence, import/export, and block-level actions.
-- `src/types.ts` defines the shared `Block` type. Avoid changing it unless required.
-- `src/components` contains notebook UI and block orchestration.
-- `src/components/blocks` contains individual block editors/renderers.
-- `src/data` contains sample notebook and block factory helpers.
-- `src/lib` contains pure logic for plotting, solving, notebook serialization, formula transforms, and local explanations.
-- `src-tauri` contains the minimal Tauri v2 shell. Avoid adding Rust/native APIs unless the MVP truly needs them.
+The notebook is local-first. It persists to `localStorage` in the Tauri WebView and supports JSON import/export through browser upload/download APIs. No backend is used.
+
+## Repository Map
+
+- `src/App.tsx`: app state, persistence, import/export, and block actions.
+- `src/types.ts`: shared block types and labels.
+- `src/components`: notebook layout, block renderer, toolbar, and add-block menu.
+- `src/components/blocks`: block-specific editors and previews.
+- `src/data`: sample notebook and block factory helpers.
+- `src/lib`: pure domain logic for formulas, plotting, solving, explanations, and serialization.
+- `src-tauri`: minimal Tauri v2 shell and app metadata.
+- `vite.config.ts`: Vite config with React and Tailwind plugins.
 
 ## Frontend Notes
 
@@ -26,22 +31,38 @@ Math Notebook Lab is a local-first desktop app for student-friendly math explora
 - Global styles live in `src/index.css`.
 - KaTeX CSS is imported once in `src/main.tsx`.
 - Markdown text blocks use `react-markdown`, `remark-gfm`, `remark-math`, and `rehype-katex`.
-- Formula blocks render display math through Markdown + KaTeX.
+- Formula blocks render display math through Markdown and KaTeX.
 - Graph blocks use `mathjs` plus custom SVG plotting in `src/lib/graphPlot.ts`.
 - Solver blocks support simple linear equations via `src/lib/linearSolver.ts`.
-- Explanation blocks currently use a deterministic local generator in `src/lib/explanationGenerator.ts`.
+- Explanation blocks use a deterministic local generator in `src/lib/explanationGenerator.ts`.
+
+## Working Rules
+
+- Keep the shared `Block` type stable unless a requested feature cannot work without changing it.
+- Keep behavior local-first by default.
+- Preserve JSON import/export compatibility.
+- Avoid backend services, native storage, and native file dialogs unless specifically needed.
+- Keep code simple. This is still an MVP, not a full CAS or AI backend.
+- Prefer pure helpers in `src/lib` for math/domain behavior.
+- Keep block-specific UI inside `src/components/blocks`.
+- Keep Rust/native changes limited to metadata, window configuration, or required Tauri shell behavior.
+- Import KaTeX CSS only once, currently in `src/main.tsx`.
+- Do not commit generated outputs such as `dist`, `node_modules`, or `src-tauri/target`.
 
 ## Commands
+
+Use these from the repository root:
 
 ```sh
 npm install
 npm run dev
 npm run build
+npm run test
 npm run tauri dev
 npm run tauri build
 ```
 
-In this local environment, Rust/Cargo may be available through `mise`, so these Tauri commands may need:
+If `cargo` is not on PATH, use the local toolchain wrapper:
 
 ```sh
 mise exec -- npm run tauri dev
@@ -50,15 +71,18 @@ mise exec -- npm run tauri build
 
 The Vite dev server runs on `http://localhost:1420/`, which Tauri uses in development.
 
-## Development Guidance
+## Verification Expectations
 
-- Prefer small, maintainable changes that preserve the current block architecture.
-- Keep notebook behavior local-first unless explicitly asked to add a service.
-- Preserve JSON import/export compatibility.
-- Do not add Tauri file dialogs, storage plugins, or backend calls unless browser APIs are insufficient.
-- Keep Rust changes limited to metadata/window configuration unless native behavior is required.
-- Before finishing significant changes, run `npm run build`; run Tauri commands when the shell or packaging is affected.
+- For frontend-only changes, run `npm run build`.
+- For pure logic changes in `src/lib`, run `npm run test` when tests are present or affected.
+- For Tauri config, Rust, metadata, or packaging changes, run `mise exec -- npm run tauri dev` or `mise exec -- npm run tauri build` as appropriate.
+- The desktop app should open as `Math Notebook Lab`, not the default Tauri starter.
+- Existing notebook features should continue to work: sample notebook, add/edit/delete/duplicate/reorder blocks, Markdown, KaTeX, graphing, solving, explanations, local persistence, and JSON import/export.
+
+## Design Direction
+
+The UI should stay polished, calm, and student-friendly. Prefer clear controls, readable spacing, and practical block workflows over marketing-style layout. The primary screen should remain the usable notebook.
 
 ## Known Build Note
 
-The frontend build may warn that the JS bundle is larger than 500 kB because math, Markdown, and KaTeX libraries are bundled together. This is acceptable for the current MVP unless performance work is explicitly requested.
+The frontend build may warn that the JavaScript bundle is larger than 500 kB because math, Markdown, and KaTeX libraries are bundled together. This is acceptable for the current MVP unless performance work is explicitly requested.
