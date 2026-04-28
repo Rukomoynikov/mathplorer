@@ -1,14 +1,10 @@
 import {
   BookOpen,
-  Copy,
-  Download,
   Files,
   Library,
   NotebookPen,
   Plus,
   Settings,
-  Trash2,
-  Upload,
 } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { BLOCK_META } from './blockMeta'
@@ -24,10 +20,6 @@ type WorkspaceSidebarProps = {
   onCreateCoursePack: (id: CoursePackId) => void
   onCreateNotebook: () => void
   onCreateSampleNotebook: () => void
-  onDeleteNotebook: (id: string) => void
-  onDuplicateNotebook: (id: string) => void
-  onExportNotebook: () => void
-  onImportNotebook: () => void
   onOpenNotebook: () => void
   onOpenSettings: () => void
   onSelectNotebook: (id: string) => void
@@ -160,10 +152,6 @@ export default function WorkspaceSidebar({
   onCreateCoursePack,
   onCreateNotebook,
   onCreateSampleNotebook,
-  onDeleteNotebook,
-  onDuplicateNotebook,
-  onExportNotebook,
-  onImportNotebook,
   onOpenNotebook,
   onOpenSettings,
   onSelectNotebook,
@@ -174,9 +162,6 @@ export default function WorkspaceSidebar({
   )
   const [selectedNotebookId, setSelectedNotebookId] = useState(
     defaultCourse?.notebooks[0]?.id ?? '',
-  )
-  const currentNotebook = notebooks.find(
-    (notebook) => notebook.id === currentNotebookId,
   )
   const selectedCourse = useMemo(
     () =>
@@ -382,39 +367,6 @@ export default function WorkspaceSidebar({
             </div>
           </SidebarSection>
         )}
-
-        <SidebarSection title="Notebook actions">
-          <div className="grid grid-cols-2 gap-2">
-            <SidebarButton
-              onClick={() => currentNotebook && onDuplicateNotebook(currentNotebook.id)}
-              disabled={!currentNotebook}
-            >
-              <Copy size={14} aria-hidden="true" />
-              Duplicate
-            </SidebarButton>
-            <SidebarButton
-              onClick={() => currentNotebook && onDeleteNotebook(currentNotebook.id)}
-              disabled={!currentNotebook}
-              tone="danger"
-            >
-              <Trash2 size={14} aria-hidden="true" />
-              Delete
-            </SidebarButton>
-          </div>
-        </SidebarSection>
-
-        <SidebarSection title="Notebook files">
-          <div className="grid gap-2">
-            <SidebarButton onClick={onExportNotebook} disabled={!currentNotebook}>
-              <Download size={14} aria-hidden="true" />
-              Export notebook
-            </SidebarButton>
-            <SidebarButton onClick={onImportNotebook}>
-              <Upload size={14} aria-hidden="true" />
-              Import notebook
-            </SidebarButton>
-          </div>
-        </SidebarSection>
       </div>
     </aside>
   )
