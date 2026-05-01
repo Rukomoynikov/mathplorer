@@ -2,8 +2,8 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import {
   createWorkspaceExport,
   parseWorkspaceJson,
-} from './notebookSerialization'
-import type { NotebookWorkspace } from '../types'
+  type NotebookWorkspace,
+} from '@mathplorer/notebook'
 
 export const WORKSPACE_FILE_NAME = 'math-notebook-lab-workspace.json'
 

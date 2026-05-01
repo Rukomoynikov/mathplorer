@@ -1,85 +1,59 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  AlertCircle,
-  BookOpen,
-  CheckCircle2,
-  Copy,
-  Download,
-  Eye,
-  FolderOpen,
-  Loader2,
-  MoreHorizontal,
-  PencilLine,
-  Plus,
-  Trash2,
-  Upload,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
-import Notebook from './components/Notebook'
-import NotebookTitleControl from './components/NotebookTitleControl'
-import SettingsPage from './components/SettingsPage'
-import WorkspaceSidebar from './components/WorkspaceSidebar'
-import { createBlock } from './data/blockFactory'
-import {
   COURSE_PACKS,
-  getCourseNotebookTemplate,
-  type CoursePackId,
-} from './data/coursePacks'
-import {
-  createSampleNotebook,
+  NOTEBOOK_STORAGE_KEY,
   SAMPLE_NOTEBOOK_TITLE,
-} from './data/sampleNotebook'
-import {
-  formulaToGraphContent,
-  normalizeFormulaContent,
-} from './lib/formulaTransforms'
-import {
-  expandFormula,
-  simplifyFormula,
-  substituteFormula,
-} from './lib/algebraTools'
-import {
+  WORKSPACE_STORAGE_KEY,
+  createBlock,
+  createNotebook,
+  createNotebookExport,
+  createWorkspace,
+  createWorkspaceExport,
+  createSampleNotebook,
   createTangentLineFormula,
   differentiateCalculusFormula,
+  duplicateNotebook,
   evaluateDerivativeAtPointFormula,
+  expandFormula,
+  formulaToGraphContent,
+  getCourseNotebookTemplate,
   integrateDefiniteFormula,
-} from './lib/calculusTools'
-import type { MathEngineResult } from './lib/mathEngine'
+  loadWorkspaceFromStorage,
+  normalizeFormulaContent,
+  parseNotebookJson,
+  parseWorkspaceJson,
+  renameNotebook,
+  simplifyFormula,
+  substituteFormula,
+  touchNotebook,
+  type BlockType,
+  type CoursePackId,
+  type MathEngineResult,
+  type Notebook as NotebookModel,
+  type NotebookViewMode,
+  type NotebookWorkspace,
+} from '@mathplorer/notebook'
+import {
+  Notebook,
+  NotebookActionsMenu,
+  NotebookTitleControl,
+  NotebookViewModeToggle,
+  NoNotebookState,
+  NoticeToast,
+  SettingsPage,
+  StorageSetupOverlay,
+  WorkspaceSidebar,
+  type AppNotice,
+} from '@mathplorer/notebook/react'
 import {
   chooseNotebookStorageFolder,
+  getNotebookStorageFolder,
   isNativeStorageAvailable,
   loadWorkspaceFromFolder,
   saveWorkspaceToFolder,
   setNotebookStorageFolder,
-  getNotebookStorageFolder,
   WORKSPACE_FILE_NAME,
 } from './lib/nativeStorage'
-import {
-  createNotebook,
-  createNotebookExport,
-  createWorkspaceExport,
-  createWorkspace,
-  duplicateNotebook,
-  loadWorkspaceFromStorage,
-  NOTEBOOK_STORAGE_KEY,
-  parseNotebookJson,
-  parseWorkspaceJson,
-  renameNotebook,
-  touchNotebook,
-  WORKSPACE_STORAGE_KEY,
-} from './lib/notebookSerialization'
-import type {
-  BlockType,
-  Notebook as NotebookModel,
-  NotebookViewMode,
-  NotebookWorkspace,
-} from './types'
-
-type AppNotice = {
-  message: string
-  tone: 'error' | 'success'
-}
 
 type DerivedFormulaResult = {
   content: string
@@ -93,251 +67,6 @@ type StorageState =
   | { status: 'loading' }
   | { status: 'needs-folder'; message?: string }
   | { folderPath: string; status: 'ready' }
-
-type NoNotebookStateProps = {
-  onCreateNotebook: () => void
-  onCreateSampleNotebook: () => void
-  onImportNotebook: () => void
-}
-
-type StorageSetupOverlayProps = {
-  isChoosing: boolean
-  message?: string
-  mode: 'error' | 'loading' | 'needs-folder'
-  onChooseFolder: () => void
-}
-
-type NotebookViewModeToggleProps = {
-  mode: NotebookViewMode
-  onModeChange: (mode: NotebookViewMode) => void
-}
-
-type NotebookActionsMenuProps = {
-  onDelete: () => void
-  onDuplicate: () => void
-  onExport: () => void
-  onImport: () => void
-}
-
-type NotebookMenuItemProps = {
-  icon: LucideIcon
-  label: string
-  onClick: () => void
-  tone?: 'danger' | 'neutral'
-}
-
-function NotebookMenuItem({
-  icon: Icon,
-  label,
-  onClick,
-  tone = 'neutral',
-}: NotebookMenuItemProps) {
-  const toneClasses =
-    tone === 'danger'
-      ? 'text-rose-700 hover:bg-rose-50'
-      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      role="menuitem"
-      className={`flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-semibold transition ${toneClasses}`}
-    >
-      <Icon size={15} aria-hidden="true" />
-      <span className="min-w-0 truncate">{label}</span>
-    </button>
-  )
-}
-
-function NotebookActionsMenu({
-  onDelete,
-  onDuplicate,
-  onExport,
-  onImport,
-}: NotebookActionsMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target
-
-      if (target instanceof Node && !menuRef.current?.contains(target)) {
-        setIsOpen(false)
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen])
-
-  function runAction(action: () => void) {
-    setIsOpen(false)
-    action()
-  }
-
-  return (
-    <div ref={menuRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-      >
-        <MoreHorizontal size={16} aria-hidden="true" />
-        Actions
-      </button>
-
-      {isOpen && (
-        <div
-          role="menu"
-          aria-label="Notebook actions"
-          className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg"
-        >
-          <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase text-slate-500">
-            Notebook
-          </p>
-          <NotebookMenuItem
-            icon={Copy}
-            label="Duplicate"
-            onClick={() => runAction(onDuplicate)}
-          />
-          <NotebookMenuItem
-            icon={Trash2}
-            label="Delete"
-            onClick={() => runAction(onDelete)}
-            tone="danger"
-          />
-          <div className="my-1 border-t border-slate-100" />
-          <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase text-slate-500">
-            Import and export
-          </p>
-          <NotebookMenuItem
-            icon={Download}
-            label="Export notebook"
-            onClick={() => runAction(onExport)}
-          />
-          <NotebookMenuItem
-            icon={Upload}
-            label="Import notebook"
-            onClick={() => runAction(onImport)}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function NotebookViewModeToggle({
-  mode,
-  onModeChange,
-}: NotebookViewModeToggleProps) {
-  const options: Array<{
-    icon: typeof Eye
-    label: string
-    value: NotebookViewMode
-  }> = [
-    { icon: Eye, label: 'Preview', value: 'preview' },
-    { icon: PencilLine, label: 'Edit', value: 'edit' },
-  ]
-
-  return (
-    <div
-      aria-label="Notebook view mode"
-      className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1"
-      role="group"
-    >
-      {options.map(({ icon: Icon, label, value }) => {
-        const isSelected = mode === value
-
-        return (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={isSelected}
-            onClick={() => onModeChange(value)}
-            className={`inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition ${
-              isSelected
-                ? 'bg-white text-slate-950 shadow-sm ring-1 ring-slate-200'
-                : 'text-slate-600 hover:bg-white/70 hover:text-slate-950'
-            }`}
-          >
-            <Icon size={15} aria-hidden="true" />
-            {label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-type NoticeToastProps = {
-  notice: AppNotice
-  onDismiss: () => void
-}
-
-function NoticeToast({ notice, onDismiss }: NoticeToastProps) {
-  const isError = notice.tone === 'error'
-  const Icon = isError ? AlertCircle : CheckCircle2
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(onDismiss, isError ? 6000 : 3500)
-    return () => window.clearTimeout(timeoutId)
-  }, [notice, isError, onDismiss])
-
-  return (
-    <div
-      aria-live="polite"
-      role="status"
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:justify-end sm:px-0"
-    >
-      <div
-        className={`animate-fade-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-white px-4 py-3 text-sm shadow-lg ${
-          isError ? 'border-rose-200' : 'border-slate-200'
-        }`}
-      >
-        <span
-          className={`flex h-8 w-8 flex-none items-center justify-center rounded-md ${
-            isError ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-600'
-          }`}
-        >
-          <Icon size={16} aria-hidden="true" />
-        </span>
-        <div className="flex-1 pt-0.5">
-          <p className="font-semibold text-slate-900">
-            {isError ? 'Something went wrong' : 'Done'}
-          </p>
-          <p className="mt-0.5 leading-5 text-slate-600">{notice.message}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label="Dismiss notice"
-          className="mnl-icon-button -mr-1 -mt-1 h-7 w-7 border-0"
-        >
-          <X size={14} aria-hidden="true" />
-        </button>
-      </div>
-    </div>
-  )
-}
 
 function loadWorkspace(): NotebookWorkspace {
   if (typeof window === 'undefined') {
@@ -396,114 +125,6 @@ function getStorageStatusLabel(storageState: StorageState) {
     case 'ready':
       return `${storageState.folderPath}/${WORKSPACE_FILE_NAME}`
   }
-}
-
-function NoNotebookState({
-  onCreateNotebook,
-  onCreateSampleNotebook,
-  onImportNotebook,
-}: NoNotebookStateProps) {
-  return (
-    <section className="mnl-panel px-6 py-14 text-center">
-      <div className="mx-auto max-w-xl">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-teal-700 text-2xl font-semibold text-white shadow-sm">
-          ∑
-        </div>
-        <p className="mt-6 text-2xl font-semibold text-slate-950">
-          Start a workspace notebook
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Create a blank notebook, start from a sample, or import a notebook JSON
-          file. Everything is saved locally on this device.
-        </p>
-        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={onCreateNotebook}
-            className="mnl-button-primary"
-          >
-            <Plus size={16} aria-hidden="true" />
-            New notebook
-          </button>
-          <button
-            type="button"
-            onClick={onCreateSampleNotebook}
-            className="mnl-button-secondary"
-          >
-            <BookOpen size={16} aria-hidden="true" />
-            Create sample
-          </button>
-          <button
-            type="button"
-            onClick={onImportNotebook}
-            className="mnl-button-secondary"
-          >
-            <Upload size={16} aria-hidden="true" />
-            Import notebook
-          </button>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function StorageSetupOverlay({
-  isChoosing,
-  message,
-  mode,
-  onChooseFolder,
-}: StorageSetupOverlayProps) {
-  const isLoading = mode === 'loading'
-  const isError = mode === 'error'
-  const title = isLoading
-    ? 'Opening notebook storage'
-    : isError
-      ? 'Choose a different folder'
-      : 'Choose a notebook folder'
-  const body = isLoading
-    ? 'Checking the folder configured for this app.'
-    : isError
-      ? (message ?? 'The configured notebook folder could not be opened.')
-      : 'Pick the folder where Math Notebook Lab should save its workspace file.'
-
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-xl">
-        <div
-          className={`mx-auto flex h-12 w-12 items-center justify-center rounded-lg ${
-            isError ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-700'
-          }`}
-        >
-          {isLoading ? (
-            <Loader2 size={24} className="animate-spin" aria-hidden="true" />
-          ) : isError ? (
-            <AlertCircle size={24} aria-hidden="true" />
-          ) : (
-            <FolderOpen size={24} aria-hidden="true" />
-          )}
-        </div>
-        <h2 className="mt-5 text-xl font-semibold text-slate-950">
-          {title}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
-        {!isLoading && (
-          <button
-            type="button"
-            onClick={onChooseFolder}
-            disabled={isChoosing}
-            className="mnl-button-primary mt-6 disabled:cursor-wait"
-          >
-            {isChoosing ? (
-              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-            ) : (
-              <FolderOpen size={16} aria-hidden="true" />
-            )}
-            Choose folder
-          </button>
-        )}
-      </section>
-    </div>
-  )
 }
 
 function App() {
