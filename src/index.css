@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../node_modules/@mathplorer/notebook/dist";
 @import "@mathplorer/notebook/styles.css";
 
 :root {
