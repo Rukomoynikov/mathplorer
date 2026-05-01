@@ -121,6 +121,16 @@ fn write_workspace_to_folder(folder_path: String, workspace_json: String) -> Res
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            let app_data_dir = app.path().app_local_data_dir()?;
+            fs::create_dir_all(&app_data_dir)?;
+            let salt_path = app_data_dir.join("stronghold-salt.txt");
+
+            app.handle()
+                .plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_notebook_storage_folder,
             choose_notebook_storage_folder,

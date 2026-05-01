@@ -11,8 +11,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@mathplorer/notebook": "^0.1.0",
+    "@mathplorer/notebook": "file:../mathplorer-notebook",
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-stronghold": "^2.3.1",
+    "lucide-react": "^1.14.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

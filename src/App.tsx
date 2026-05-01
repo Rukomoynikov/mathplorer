@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 import {
   COURSE_PACKS,
   NOTEBOOK_STORAGE_KEY,
@@ -7,6 +8,7 @@ import {
   createBlock,
   createNotebook,
   createNotebookExport,
+  createNotebookFromImport,
   createWorkspace,
   createWorkspaceExport,
   createSampleNotebook,
@@ -45,6 +47,24 @@ import {
   WorkspaceSidebar,
   type AppNotice,
 } from '@mathplorer/notebook/react'
+import AuthDialog, { type AuthDialogMode } from './components/AuthDialog'
+import {
+  ApiError,
+  deleteSyncedNotebook,
+  getCurrentUser,
+  getSyncedNotebook,
+  listSyncedNotebooks,
+  putSyncedNotebook,
+  requestPasswordReset,
+  resendVerification,
+  resetPassword,
+  signIn,
+  signOut,
+  signUp,
+  type AuthUser,
+  type SyncedNotebook,
+  type SyncedNotebookSummary,
+} from './lib/cloudSync'
 import {
   chooseNotebookStorageFolder,
   getNotebookStorageFolder,
@@ -54,12 +74,25 @@ import {
   setNotebookStorageFolder,
   WORKSPACE_FILE_NAME,
 } from './lib/nativeStorage'
+import {
+  clearSessionToken,
+  loadSessionToken,
+  saveSessionToken,
+} from './lib/secureSession'
 
 type DerivedFormulaResult = {
   content: string
 }
 
 type AppView = 'notebook' | 'settings'
+
+type NotebookSyncState = {
+  cloudId: string
+  revision: number
+  syncedAt: string
+}
+
+const SYNC_STATE_STORAGE_KEY = 'mathplorer:manual-sync:v1'
 
 type StorageState =
   | { status: 'browser' }
@@ -77,6 +110,65 @@ function loadWorkspace(): NotebookWorkspace {
     window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
     window.localStorage.getItem(NOTEBOOK_STORAGE_KEY),
   )
+}
+
+function loadSyncState(): Record<string, NotebookSyncState> {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(SYNC_STATE_STORAGE_KEY)
+
+    if (!storedValue) {
+      return {}
+    }
+
+    const parsedValue = JSON.parse(storedValue) as unknown
+
+    if (!parsedValue || typeof parsedValue !== 'object') {
+      return {}
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsedValue as Record<string, unknown>).filter(
+        (entry): entry is [string, NotebookSyncState] => {
+          const value = entry[1]
+
+          return (
+            Boolean(value) &&
+            typeof value === 'object' &&
+            typeof (value as NotebookSyncState).cloudId === 'string' &&
+            typeof (value as NotebookSyncState).revision === 'number' &&
+            typeof (value as NotebookSyncState).syncedAt === 'string'
+          )
+        },
+      ),
+    )
+  } catch {
+    return {}
+  }
+}
+
+function getApiErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      case 'EMAIL_ALREADY_REGISTERED':
+        return 'That email is already registered.'
+      case 'EMAIL_NOT_VERIFIED':
+        return 'Verify your email before syncing notebooks.'
+      case 'INVALID_LOGIN':
+        return 'Email or password is incorrect.'
+      case 'RATE_LIMITED':
+        return 'Too many attempts. Try again later.'
+      case 'SYNC_CONFLICT':
+        return 'The cloud copy changed since your last sync.'
+      default:
+        return error.code
+    }
+  }
+
+  return error instanceof Error ? error.message : 'Request failed.'
 }
 
 function downloadJsonFile(filename: string, value: unknown) {
@@ -136,6 +228,23 @@ function App() {
   const [notebookViewMode, setNotebookViewMode] =
     useState<NotebookViewMode>('preview')
   const [notice, setNotice] = useState<AppNotice | null>(null)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [sessionToken, setSessionToken] = useState<string | null>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [authDialogMode, setAuthDialogMode] =
+    useState<AuthDialogMode>('sign-in')
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false)
+  const [passwordResetToken, setPasswordResetToken] = useState<string | null>(
+    null,
+  )
+  const [syncedNotebooks, setSyncedNotebooks] = useState<
+    SyncedNotebookSummary[]
+  >([])
+  const [syncState, setSyncState] =
+    useState<Record<string, NotebookSyncState>>(loadSyncState)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [isManagingSyncedNotebooks, setIsManagingSyncedNotebooks] =
+    useState(false)
   const [isChoosingStorageFolder, setIsChoosingStorageFolder] = useState(false)
   const notebookImportInputRef = useRef<HTMLInputElement>(null)
   const workspaceImportInputRef = useRef<HTMLInputElement>(null)
@@ -149,6 +258,100 @@ function App() {
   useEffect(() => {
     setNotebookViewMode('preview')
   }, [currentNotebook?.id])
+
+  useEffect(() => {
+    const resetToken = new URLSearchParams(window.location.search).get(
+      'resetToken',
+    )
+
+    if (resetToken) {
+      setPasswordResetToken(resetToken)
+      setAuthDialogMode('reset')
+      setIsAuthDialogOpen(true)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadAuthUser() {
+      try {
+        const token = await loadSessionToken()
+
+        if (isCancelled) {
+          return
+        }
+
+        setSessionToken(token)
+
+        if (!token) {
+          return
+        }
+
+        const result = await getCurrentUser(token)
+
+        if (!isCancelled) {
+          setAuthUser(result.user)
+        }
+      } catch (error) {
+        console.error('Unable to load account session.', error)
+      } finally {
+        if (!isCancelled) {
+          setIsAuthLoading(false)
+        }
+      }
+    }
+
+    void loadAuthUser()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        SYNC_STATE_STORAGE_KEY,
+        JSON.stringify(syncState),
+      )
+    } catch (error) {
+      console.error('Unable to save sync metadata.', error)
+    }
+  }, [syncState])
+
+  useEffect(() => {
+    if (!authUser?.emailVerified || !sessionToken) {
+      setSyncedNotebooks([])
+      return
+    }
+
+    let isCancelled = false
+
+    async function loadSyncedNotebooks() {
+      try {
+        const result = await listSyncedNotebooks(sessionToken)
+
+        if (!isCancelled) {
+          setSyncedNotebooks(result.notebooks)
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setNotice({
+            tone: 'error',
+            message: getApiErrorMessage(error),
+          })
+        }
+      }
+    }
+
+    void loadSyncedNotebooks()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [authUser?.id, authUser?.emailVerified, sessionToken])
 
   useEffect(() => {
     if (!isNativeStorageAvailable()) {
@@ -283,6 +486,348 @@ function App() {
         notebooks,
       }
     })
+  }
+
+  async function refreshSyncedNotebooks() {
+    if (!authUser?.emailVerified || !sessionToken) {
+      setSyncedNotebooks([])
+      return
+    }
+
+    const result = await listSyncedNotebooks(sessionToken)
+    setSyncedNotebooks(result.notebooks)
+  }
+
+  function openAuthDialog(mode: AuthDialogMode = 'sign-in') {
+    setAuthDialogMode(mode)
+    setIsAuthDialogOpen(true)
+  }
+
+  async function handleSignIn(email: string, password: string) {
+    try {
+      const result = await signIn(email, password)
+
+      await saveSessionToken(result.sessionToken)
+      setSessionToken(result.sessionToken)
+      setAuthUser(result.user)
+      setIsAuthDialogOpen(false)
+      setNotice({
+        tone: 'success',
+        message: result.user.emailVerified
+          ? 'Signed in.'
+          : 'Signed in. Verify your email before syncing.',
+      })
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleSignUp(email: string, password: string) {
+    try {
+      const result = await signUp(email, password)
+
+      await saveSessionToken(result.sessionToken)
+      setSessionToken(result.sessionToken)
+      setAuthUser(result.user)
+      setIsAuthDialogOpen(false)
+      setNotice({
+        tone: 'success',
+        message: 'Account created. Check your email to verify it before syncing.',
+      })
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleForgotPassword(email: string) {
+    try {
+      await requestPasswordReset(email)
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleResetPassword(token: string, password: string) {
+    try {
+      await resetPassword(token, password)
+      setPasswordResetToken(null)
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut(sessionToken)
+    } catch (error) {
+      console.error('Sign out failed.', error)
+    }
+
+    await clearSessionToken()
+    setSessionToken(null)
+    setAuthUser(null)
+    setSyncedNotebooks([])
+    setNotice({
+      tone: 'success',
+      message: 'Signed out.',
+    })
+  }
+
+  async function handleSyncConflict(
+    cloudId: string,
+    localNotebook: NotebookModel,
+    conflict: SyncedNotebook,
+  ) {
+    const choice = window
+      .prompt(
+        'Cloud copy changed. Type "download" to save the cloud copy locally, "overwrite" to replace the cloud copy, or "cancel".',
+        'download',
+      )
+      ?.trim()
+      .toLowerCase()
+
+    if (choice === 'download') {
+      const importedNotebook = createNotebookFromImport(conflict.notebook)
+
+      setWorkspace((currentWorkspace) => ({
+        ...currentWorkspace,
+        notebooks: [...currentWorkspace.notebooks, importedNotebook],
+        currentNotebookId: importedNotebook.id,
+      }))
+      setSyncState((currentSyncState) => {
+        const remainingSyncState = { ...currentSyncState }
+        delete remainingSyncState[localNotebook.id]
+
+        return {
+          ...remainingSyncState,
+          [importedNotebook.id]: {
+            cloudId,
+            revision: conflict.revision,
+            syncedAt: conflict.updatedAt,
+          },
+        }
+      })
+      setNotice({
+        tone: 'success',
+        message: 'Cloud copy opened as a new local notebook.',
+      })
+      return
+    }
+
+    if (choice === 'overwrite') {
+      const result = await putSyncedNotebook(
+        cloudId,
+        localNotebook,
+        conflict.revision,
+        sessionToken,
+        true,
+      )
+
+      setSyncState((currentSyncState) => ({
+        ...currentSyncState,
+        [localNotebook.id]: {
+          cloudId,
+          revision: result.revision,
+          syncedAt: result.updatedAt,
+        },
+      }))
+      await refreshSyncedNotebooks()
+      setNotice({
+        tone: 'success',
+        message: 'Cloud copy overwritten.',
+      })
+      return
+    }
+
+    setNotice({
+      tone: 'success',
+      message: 'Sync cancelled.',
+    })
+  }
+
+  async function handleSyncCurrentNotebook() {
+    if (!currentNotebook) {
+      return
+    }
+
+    if (!authUser || !sessionToken) {
+      openAuthDialog('sign-in')
+      return
+    }
+
+    let activeUser = authUser
+
+    if (!activeUser.emailVerified) {
+      const refreshedUser = await getCurrentUser(sessionToken).catch(() => ({
+        user: null,
+      }))
+
+      if (refreshedUser.user) {
+        setAuthUser(refreshedUser.user)
+        activeUser = refreshedUser.user
+      }
+    }
+
+    if (!activeUser.emailVerified) {
+      try {
+        await resendVerification(sessionToken)
+        setNotice({
+          tone: 'success',
+          message: 'Verification email sent. Verify your email before syncing.',
+        })
+      } catch (error) {
+        setNotice({
+          tone: 'error',
+          message: getApiErrorMessage(error),
+        })
+      }
+      return
+    }
+
+    const currentSyncState = syncState[currentNotebook.id]
+    const cloudId = currentSyncState?.cloudId ?? currentNotebook.id
+
+    setIsSyncing(true)
+
+    try {
+      const result = await putSyncedNotebook(
+        cloudId,
+        currentNotebook,
+        currentSyncState?.revision ?? null,
+        sessionToken,
+      )
+
+      setSyncState((nextSyncState) => ({
+        ...nextSyncState,
+        [currentNotebook.id]: {
+          cloudId,
+          revision: result.revision,
+          syncedAt: result.updatedAt,
+        },
+      }))
+      await refreshSyncedNotebooks()
+      setNotice({
+        tone: 'success',
+        message: 'Notebook synced.',
+      })
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'SYNC_CONFLICT') {
+        await handleSyncConflict(
+          cloudId,
+          currentNotebook,
+          error.payload as SyncedNotebook,
+        )
+      } else {
+        setNotice({
+          tone: 'error',
+          message: getApiErrorMessage(error),
+        })
+      }
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  async function handleOpenSyncedNotebook(id: string) {
+    setIsManagingSyncedNotebooks(true)
+
+    try {
+      const result = await getSyncedNotebook(id, sessionToken)
+      const existingIndex = workspace.notebooks.findIndex(
+        (notebook) => syncState[notebook.id]?.cloudId === id,
+      )
+
+      if (
+        existingIndex !== -1 &&
+        !window.confirm('Replace the local copy of this synced notebook?')
+      ) {
+        return
+      }
+
+      const notebookToOpen =
+        existingIndex === -1
+          ? workspace.notebooks.some(
+              (notebook) => notebook.id === result.notebook.id,
+            )
+            ? createNotebookFromImport(result.notebook)
+            : result.notebook
+          : {
+              ...result.notebook,
+              id: workspace.notebooks[existingIndex].id,
+            }
+
+      setWorkspace((currentWorkspace) => {
+        if (existingIndex === -1) {
+          return {
+            ...currentWorkspace,
+            notebooks: [...currentWorkspace.notebooks, notebookToOpen],
+            currentNotebookId: notebookToOpen.id,
+          }
+        }
+
+        const notebooks = [...currentWorkspace.notebooks]
+        notebooks[existingIndex] = notebookToOpen
+
+        return {
+          ...currentWorkspace,
+          notebooks,
+          currentNotebookId: notebookToOpen.id,
+        }
+      })
+      setSyncState((currentSyncState) => ({
+        ...currentSyncState,
+        [notebookToOpen.id]: {
+          cloudId: id,
+          revision: result.revision,
+          syncedAt: result.updatedAt,
+        },
+      }))
+      setAppView('notebook')
+      setNotice({
+        tone: 'success',
+        message: 'Synced notebook opened locally.',
+      })
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsManagingSyncedNotebooks(false)
+    }
+  }
+
+  async function handleDeleteSyncedNotebook(id: string) {
+    if (!window.confirm('Delete this cloud copy? Local notebooks stay on this device.')) {
+      return
+    }
+
+    setIsManagingSyncedNotebooks(true)
+
+    try {
+      await deleteSyncedNotebook(id, sessionToken)
+      setSyncedNotebooks((currentSyncedNotebooks) =>
+        currentSyncedNotebooks.filter((notebook) => notebook.id !== id),
+      )
+      setSyncState((currentSyncState) =>
+        Object.fromEntries(
+          Object.entries(currentSyncState).filter(
+            ([, value]) => value.cloudId !== id,
+          ),
+        ),
+      )
+      setNotice({
+        tone: 'success',
+        message: 'Cloud copy deleted.',
+      })
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsManagingSyncedNotebooks(false)
+    }
   }
 
   async function handleChooseStorageFolder() {
@@ -509,6 +1054,12 @@ function App() {
         notebooks,
         currentNotebookId,
       }
+    })
+    setSyncState((currentSyncState) => {
+      const nextSyncState = { ...currentSyncState }
+      delete nextSyncState[id]
+
+      return nextSyncState
     })
     setNotice({
       tone: 'success',
@@ -912,6 +1463,19 @@ function App() {
     (count, notebook) => count + notebook.blocks.length,
     0,
   )
+  const currentSyncState = currentNotebook ? syncState[currentNotebook.id] : null
+  const accountStatusLabel = isAuthLoading
+    ? 'Checking account...'
+    : authUser
+      ? authUser.emailVerified
+        ? 'Signed in'
+        : 'Email verification required'
+      : 'Offline only'
+  const syncStatusLabel = currentNotebook
+    ? currentSyncState
+      ? `Synced revision ${currentSyncState.revision}`
+      : 'Offline only'
+    : undefined
   const storageFolderPath =
     storageState.status === 'ready' ? storageState.folderPath : null
   const storageStatusLabel = getStorageStatusLabel(storageState)
@@ -944,14 +1508,25 @@ function App() {
         <div className="mx-auto flex min-w-0 flex-1 flex-col gap-5 px-4 py-4 sm:px-6 lg:max-w-6xl lg:px-8 lg:py-6">
           {appView === 'settings' ? (
             <SettingsPage
+              accountEmail={authUser?.email ?? null}
+              accountStatusLabel={accountStatusLabel}
               blockCount={totalBlockCount}
               notebookCount={workspace.notebooks.length}
+              onDeleteSyncedNotebook={handleDeleteSyncedNotebook}
               onChangeStorageFolder={() => void handleChooseStorageFolder()}
               onExportWorkspace={handleExportWorkspace}
               onImportWorkspace={handleImportWorkspaceClick}
+              onOpenAuth={() => openAuthDialog('sign-in')}
+              onOpenSyncedNotebook={handleOpenSyncedNotebook}
+              onSignOut={authUser ? handleSignOut : undefined}
+              onSyncCurrentNotebook={handleSyncCurrentNotebook}
               storageChangeDisabled={storageChangeDisabled}
               storageFolderPath={storageFolderPath}
               storageStatusLabel={storageStatusLabel}
+              syncCurrentDisabled={isSyncing || !currentNotebook}
+              syncStatusLabel={syncStatusLabel}
+              syncedNotebookActionDisabled={isManagingSyncedNotebooks}
+              syncedNotebooks={authUser?.emailVerified ? syncedNotebooks : []}
             />
           ) : currentNotebook ? (
             <>
@@ -988,6 +1563,16 @@ function App() {
                           ? 'Saved to notebook folder'
                           : 'Saved locally'}
                       </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            currentSyncState ? 'bg-sky-500' : 'bg-slate-400'
+                          }`}
+                        />
+                        {currentSyncState
+                          ? `Synced r${currentSyncState.revision}`
+                          : 'Offline only'}
+                      </span>
                       <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-slate-500">
                         Updated{' '}
                         {new Date(currentNotebook.updatedAt).toLocaleString([], {
@@ -999,6 +1584,19 @@ function App() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleSyncCurrentNotebook()}
+                      disabled={isSyncing}
+                      className="mnl-button-secondary"
+                    >
+                      <RefreshCw
+                        size={15}
+                        className={isSyncing ? 'animate-spin' : undefined}
+                        aria-hidden="true"
+                      />
+                      Sync
+                    </button>
                     <NotebookViewModeToggle
                       mode={notebookViewMode}
                       onModeChange={setNotebookViewMode}
@@ -1075,6 +1673,18 @@ function App() {
           event.target.value = ''
         }}
       />
+
+      {isAuthDialogOpen && (
+        <AuthDialog
+          initialMode={authDialogMode}
+          onClose={() => setIsAuthDialogOpen(false)}
+          onForgotPassword={handleForgotPassword}
+          onResetPassword={handleResetPassword}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          resetToken={passwordResetToken}
+        />
+      )}
 
       {shouldShowStorageSetup && (
         <StorageSetupOverlay
